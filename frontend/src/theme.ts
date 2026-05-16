@@ -8,16 +8,20 @@ const theme = extendTheme({
   styles: {
     global: {
       body: {
-        bg: 'gray.900',
+        bg: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)',
         color: 'white',
+        minHeight: '100vh',
       },
     },
   },
   components: {
     Button: {
       baseStyle: {
+        borderRadius: 'lg',
+        fontWeight: 'semibold',
         _hover: {
-          transform: 'scale(1.05)',
+          transform: 'translateY(-2px)',
+          boxShadow: 'xl',
         },
       },
       variants: {
@@ -26,6 +30,15 @@ const theme = extendTheme({
           color: 'white',
           _hover: {
             bg: 'purple.600',
+          },
+        },
+        glass: {
+          bg: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          color: 'white',
+          _hover: {
+            bg: 'rgba(255, 255, 255, 0.2)',
           },
         },
       },

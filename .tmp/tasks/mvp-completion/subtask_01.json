@@ -1,0 +1,27 @@
+{
+  "id": "mvp-completion-01",
+  "seq": "01",
+  "title": "Backend: DISABLE_AUTH env var + app/listen separation in server.ts",
+  "status": "pending",
+  "depends_on": [],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [],
+  "reference_files": [
+    "src/server.ts"
+  ],
+  "acceptance_criteria": [
+    "authMiddleware skips JWT verification and calls next() when DISABLE_AUTH=true",
+    "authMiddleware still validates Bearer token when DISABLE_AUTH is unset or false",
+    "app.listen() guarded behind require.main === module check so the server doesn't start on import",
+    "app export remains unchanged (still exports default app)",
+    "All 24 tests still pass"
+  ],
+  "deliverables": [
+    "src/server.ts (modified)"
+  ],
+  "agent_id": null,
+  "started_at": null,
+  "completed_at": null,
+  "completion_summary": null
+}

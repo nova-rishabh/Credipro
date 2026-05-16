@@ -4,7 +4,15 @@ import { WalletConnectButton } from './WalletConnectButton';
 
 const Header: React.FC = () => {
   return (
-    <Box bg="gray.800" p={4} color="white">
+    <Box
+      bg="rgba(15, 12, 41, 0.8)"
+      backdropFilter="blur(10px)"
+      borderBottom="1px solid rgba(255, 255, 255, 0.1)"
+      p={4}
+      position="sticky"
+      top={0}
+      zIndex={10}
+    >
       <Flex maxW="container.xl" mx="auto" align="center">
         <Heading size="md" color="white">Credipro</Heading>
         <Spacer />

@@ -68,14 +68,29 @@ export const LoanDashboard: React.FC = () => {
 
   if (!isConnected) {
     return (
-      <Box p={8} borderWidth={1} borderRadius="lg" textAlign="center">
+      <Box
+        p={8}
+        borderRadius="xl"
+        bg="rgba(255, 255, 255, 0.05)"
+        backdropFilter="blur(10px)"
+        border="1px solid rgba(255, 255, 255, 0.1)"
+        boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
+        textAlign="center"
+      >
         <Text>Please connect your Lace wallet to request a loan.</Text>
       </Box>
     );
   }
 
   return (
-    <Box p={8} borderWidth={1} borderRadius="lg" boxShadow="md">
+    <Box
+      p={8}
+      borderRadius="xl"
+      bg="rgba(255, 255, 255, 0.05)"
+      backdropFilter="blur(10px)"
+      border="1px solid rgba(255, 255, 255, 0.1)"
+      boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
+    >
       <VStack spacing={6} align="stretch">
         <Heading size="md">Request Loan</Heading>
         

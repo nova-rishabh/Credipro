@@ -336,7 +336,7 @@ export class MockOracleService {
   clearAllData(): void {
     this.creditBureau = new MockCreditBureau();
     this.identityProvider = new MockIdentityProvider();
-    this.oracleCommittee.clearAllVotes();
+    this.oracleCommittee = new OracleCommittee();
     console.log('[MOCK-ORACLE] All data cleared');
   }
 }

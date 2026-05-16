@@ -23,6 +23,10 @@ const contractAddress = toBytes32(process.env.MIDNIGHT_CONTRACT_ADDRESS || '0x' 
 const client = new CrediproClient(contractAddress, {}, mockOracleService);
 
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+  if (process.env.DISABLE_AUTH === 'true') {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing or invalid authorization header' });
@@ -185,10 +189,12 @@ app.get('/api/oracle/members', authMiddleware, (_req: AuthenticatedRequest, res:
   res.json({ members });
 });
 
-app.listen(PORT, () => {
-  console.log(`[SERVER] Credipro backend running on port ${PORT}`);
-  console.log(`[SERVER] Mock mode: ${process.env.MOCK_ORACLE_MODE !== 'false'}`);
-  console.log(`[SERVER] Contract address: ${contractAddress}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[SERVER] Credipro backend running on port ${PORT}`);
+    console.log(`[SERVER] Mock mode: ${process.env.MOCK_ORACLE_MODE !== 'false'}`);
+    console.log(`[SERVER] Contract address: ${contractAddress}`);
+  });
+}
 
 export default app;

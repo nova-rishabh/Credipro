@@ -1,0 +1,25 @@
+{
+  "id": "mvp-completion-08",
+  "seq": "08",
+  "title": "Validation: Run tests, type check, and verify clean state",
+  "status": "pending",
+  "depends_on": ["01", "02", "03", "04", "05", "06", "07"],
+  "parallel": false,
+  "suggested_agent": "CoderAgent",
+  "context_files": [],
+  "reference_files": [],
+  "acceptance_criteria": [
+    "npm test passes all 24/24 tests",
+    "npx tsc --noEmit compiles without errors",
+    "git status shows no unexpected modified files",
+    "No lint errors introduced"
+  ],
+  "deliverables": [
+    "Test output showing 24/24 passing",
+    "Clean TypeScript compilation output"
+  ],
+  "agent_id": null,
+  "started_at": null,
+  "completed_at": null,
+  "completion_summary": null
+}

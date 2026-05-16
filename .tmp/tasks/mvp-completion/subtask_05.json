@@ -1,0 +1,34 @@
+{
+  "id": "mvp-completion-05",
+  "seq": "05",
+  "title": "Frontend: Add Oracle voting panel (replace DefaultResolution with OracleVotingPanel)",
+  "status": "pending",
+  "depends_on": ["03"],
+  "parallel": false,
+  "suggested_agent": "OpenFrontendSpecialist",
+  "context_files": [],
+  "reference_files": [
+    "frontend/src/components/DefaultResolution.tsx",
+    "frontend/src/components/Dashboard.tsx",
+    "frontend/src/api/crediproApi.ts",
+    "src/types.ts"
+  ],
+  "acceptance_criteria": [
+    "DefaultResolution.tsx renamed/replaced by OracleVotingPanel.tsx",
+    "OracleVotingPanel fetches oracle members from GET /api/oracle/members via crediproApi",
+    "Displays 3 oracle members (oracle-1, oracle-2, oracle-3) with individual vote buttons",
+    "Allows voting per member via POST /api/oracle/vote",
+    "Shows approval count (e.g., '2/3 approvals') and consensus status",
+    "Dashboard.tsx imports OracleVotingPanel instead of DefaultResolution",
+    "Includes loanId input field for specifying which loan to vote on",
+    "Error handling and loading states included"
+  ],
+  "deliverables": [
+    "frontend/src/components/OracleVotingPanel.tsx",
+    "frontend/src/components/Dashboard.tsx (modified)"
+  ],
+  "agent_id": null,
+  "started_at": null,
+  "completed_at": null,
+  "completion_summary": null
+}
