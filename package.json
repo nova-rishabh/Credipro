@@ -34,6 +34,7 @@
     "@midnight-ntwrk/midnight-js-utils": "^4.0.0",
     "@midnight-ntwrk/wallet-sdk": "^1.0.0",
     "axios": "^1.6.0",
+    "@chakra-ui/icons": "^2.0.0",
     "cors": "^2.8.6",
     "dotenv": "^16.3.0",
     "ethers": "^6.7.0",

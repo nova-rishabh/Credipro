@@ -19,7 +19,23 @@ export interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
-const contractAddress = toBytes32(process.env.MIDNIGHT_CONTRACT_ADDRESS || '0x' + '1'.repeat(64));
+// Resolve contract address safely at startup. toBytes32 throws on invalid input,
+// so catch errors and fall back to a default bytes32 value to avoid crashing
+// the server during import when env vars are misconfigured.
+let contractAddress;
+try {
+  if (process.env.MIDNIGHT_CONTRACT_ADDRESS) {
+    contractAddress = toBytes32(process.env.MIDNIGHT_CONTRACT_ADDRESS);
+  } else {
+    contractAddress = toBytes32('0x' + '1'.repeat(64));
+  }
+} catch (err) {
+  // Log a warning and use a safe default so the server can start in dev
+  console.warn('[SERVER] Invalid MIDNIGHT_CONTRACT_ADDRESS, falling back to default bytes32:',
+    err instanceof Error ? err.message : err);
+  contractAddress = toBytes32('0x' + '1'.repeat(64));
+}
+
 const client = new CrediproClient(contractAddress, {}, mockOracleService);
 
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
