@@ -1,13 +1,13 @@
 import React from 'react';
 import { VStack, Heading } from '@chakra-ui/react';
-import LoanRequestForm from './LoanRequestForm';
+import { LoanDashboard } from './LoanDashboard';
 import DefaultResolution from './DefaultResolution';
 
 const Dashboard: React.FC = () => {
   return (
     <VStack spacing={8} w="full">
       <Heading>Dashboard</Heading>
-      <LoanRequestForm />
+      <LoanDashboard />
       <DefaultResolution />
     </VStack>
   );
