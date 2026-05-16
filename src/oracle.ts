@@ -128,12 +128,18 @@ export class MockIdentityProvider {
       const ciphertext = Buffer.from(encryptedIdentity.ciphertext, 'hex');
       const iv = Buffer.from(encryptedIdentity.iv, 'hex');
       const salt = Buffer.from(encryptedIdentity.salt, 'hex');
+      const authTag = Buffer.from(encryptedIdentity.authTag, 'hex');
 
       // Derive key from password and salt
       const key = scryptSync(this.encryptionKey, salt, 32);
 
       // Decrypt using AES-256-GCM
-      const decipher = require('crypto').createDecipheriv('aes-256-gcm', key, iv);
+      const decipher = require('crypto').createDecipheriv(
+        'aes-256-gcm',
+        key,
+        iv
+      );
+      decipher.setAuthTag(authTag);
       let decrypted = decipher.update(ciphertext);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
@@ -185,12 +191,12 @@ export class MockIdentityProvider {
 
     // Get auth tag for GCM
     const authTag = cipher.getAuthTag().toString('hex');
-    ciphertext += authTag;
 
     return {
       ciphertext,
       iv: iv.toString('hex'),
       salt: salt.toString('hex'),
+      authTag,
       algorithm: 'aes-256-gcm'
     };
   }
@@ -229,6 +235,10 @@ export class OracleCommittee {
     }
 
     const loanVotes = this.votes.get(loanIdStr)!;
+    if (loanVotes.has(oracleMemberId)) {
+      console.warn(`[ORACLE] Member ${oracleMemberId} already voted for ${loanIdStr}`);
+      return loanVotes.size >= 2;
+    }
     loanVotes.add(oracleMemberId);
 
     console.log(
@@ -298,10 +308,6 @@ export class MockOracleService {
     return this.identityProvider.getEncryptedIdentity(borrowerId);
   }
 
-  registerIdentity(borrowerId: string, identity: IdentityData): void {
-    this.identityProvider.registerIdentity(borrowerId, identity);
-  }
-
   decryptIdentity(encryptedIdentity: EncryptedIdentity): IdentityData {
     return this.identityProvider.decryptIdentity(encryptedIdentity);
   }
@@ -311,15 +317,23 @@ export class MockOracleService {
     return this.oracleCommittee.voteApproval(loanId, oracleMemberId);
   }
 
+  /**
+   * Get approval count for a loan
+   */
   getApprovalCount(loanId: Bytes32): number {
     return this.oracleCommittee.getApprovalCount(loanId);
   }
 
+  /**
+   * Get all oracle members
+   */
   getOracleMembers() {
     return this.oracleCommittee.getMembers();
   }
 
-  // For testing
+  /**
+   * Clear all data (for testing)
+   */
   clearAllData(): void {
     this.oracleCommittee.clearVotes(toBytes32('0x' + '0'.repeat(64)));
     console.log('[MOCK-ORACLE] All data cleared');

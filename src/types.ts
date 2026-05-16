@@ -27,6 +27,7 @@ export interface EncryptedIdentity {
   ciphertext: string;       // Encrypted identity JSON (hex-encoded)
   iv: string;               // Initialization vector (hex-encoded)
   salt: string;             // Key derivation salt (hex-encoded)
+  authTag: string;          // GCM authentication tag (hex-encoded)
   algorithm: string;        // "aes-256-gcm" or similar
 }
 

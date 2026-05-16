@@ -141,8 +141,7 @@ export class CrediproClient {
       console.log(`  loanId: ${loanId}`);
 
       // Check if enough oracle approvals exist
-      // In production: query oracleCommitteeSignatures ledger
-      const oracleApprovals = 2; // Mock: assume we have >= 2 approvals
+      const oracleApprovals = await this.getOracleApprovals(loanId);
 
       if (oracleApprovals < 2) {
         return {
@@ -322,7 +321,9 @@ export class CrediproClient {
    * In production: Use BLS12-381 elliptic curve to generate real zk-SNARK
    */
   private generateMockProof(circuitName: string, inputs: any): string {
-    const inputStr = JSON.stringify(inputs);
+    const inputStr = JSON.stringify(inputs, (_, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
     const hash = require('crypto')
       .createHash('sha256')
       .update(`${circuitName}:${inputStr}`)

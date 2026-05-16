@@ -6,13 +6,13 @@
 
 import {
   CrediproClient,
-  mockOracleService,
   toBytes32,
   initializeBorrowerContext,
   storeLoanDetails,
   clearBorrowerContext,
   getBorrowerContext
 } from '../src/index';
+import { mockOracleService } from '../src/oracle';
 
 describe('Credipro SDK', () => {
   let client: CrediproClient;
@@ -35,6 +35,7 @@ describe('Credipro SDK', () => {
         ciphertext: '0x' + 'a'.repeat(128),
         iv: '0x' + 'b'.repeat(24),
         salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
         algorithm: 'aes-256-gcm'
       };
       const secretKey = toBytes32('0x' + 'd'.repeat(64));
@@ -61,6 +62,7 @@ describe('Credipro SDK', () => {
           ciphertext: '0x' + 'a'.repeat(128),
           iv: '0x' + 'b'.repeat(24),
           salt: '0x' + 'c'.repeat(32),
+          authTag: '0x' + 'd'.repeat(32),
           algorithm: 'aes-256-gcm'
         },
         toBytes32('0x' + 'd'.repeat(64)),
@@ -78,6 +80,7 @@ describe('Credipro SDK', () => {
           ciphertext: '0x' + 'a'.repeat(128),
           iv: '0x' + 'b'.repeat(24),
           salt: '0x' + 'c'.repeat(32),
+          authTag: '0x' + 'd'.repeat(32),
           algorithm: 'aes-256-gcm'
         },
         toBytes32('0x' + 'd'.repeat(64)),
@@ -170,6 +173,7 @@ describe('Credipro SDK', () => {
           ciphertext: '0x' + 'a'.repeat(128),
           iv: '0x' + 'b'.repeat(24),
           salt: '0x' + 'c'.repeat(32),
+          authTag: '0x' + 'd'.repeat(32),
           algorithm: 'aes-256-gcm'
         },
         toBytes32('0x' + 'd'.repeat(64)),
@@ -194,6 +198,7 @@ describe('Credipro SDK', () => {
           ciphertext: '0x' + 'a'.repeat(128),
           iv: '0x' + 'b'.repeat(24),
           salt: '0x' + 'c'.repeat(32),
+          authTag: '0x' + 'd'.repeat(32),
           algorithm: 'aes-256-gcm'
         },
         toBytes32('0x' + 'd'.repeat(64)),
@@ -232,11 +237,16 @@ describe('Credipro SDK', () => {
       // Only 1 oracle approval (need 2)
       mockOracleService.voteApproval(loanId, 'oracle-1');
 
+      const client = new CrediproClient(contractAddress, mockWallet);
+      const getOracleApprovalsSpy = jest.spyOn(client, 'getOracleApprovals').mockResolvedValue(1);
+
       const response = await client.triggerSlashing(loanId);
 
       expect(response.success).toBe(false);
       expect(response.marked).toBe(false);
       expect(response.error).toContain('Insufficient oracle approvals');
+
+      getOracleApprovalsSpy.mockRestore();
     });
 
     test('verifyMasterLoanAgreement returns boolean', async () => {
@@ -299,13 +309,17 @@ describe('Credipro SDK', () => {
 
       mockOracleService.voteApproval(loanId, 'oracle-1');
       const approvals1 = mockOracleService.getApprovalCount(loanId);
+      expect(approvals1).toBe(1);
 
       // Same oracle voting again doesn't double-count (idempotent)
       mockOracleService.voteApproval(loanId, 'oracle-1');
       const approvals2 = mockOracleService.getApprovalCount(loanId);
-
-      expect(approvals1).toBe(1);
       expect(approvals2).toBe(1); // Still 1, not 2
+
+      // A different oracle can vote
+      mockOracleService.voteApproval(loanId, 'oracle-2');
+      const approvals3 = mockOracleService.getApprovalCount(loanId);
+      expect(approvals3).toBe(2);
     });
 
     test('Identity reveal only on full 2-of-3 consensus', () => {

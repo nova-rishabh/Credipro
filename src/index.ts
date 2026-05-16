@@ -29,8 +29,7 @@ export {
   MockCreditBureau,
   MockIdentityProvider,
   OracleCommittee,
-  MockOracleService,
-  mockOracleService
+  MockOracleService
 } from './oracle';
 
 // Version

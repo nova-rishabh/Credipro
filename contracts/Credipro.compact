@@ -154,11 +154,11 @@ export circuit requestLoan(
   // Step 4: Assert loan amount respects LTV constraint
   // Must be <= maxLTV. For MVP, we assert loanAmount <= poolTVL.
   // ─────────────────────────────────────────────────────────────────────────
-  const poolTVL = liquidityPools.lookup(poolAddress);
   assert(
-    publicRiskParameters.member(poolAddress),
+    liquidityPools.member(poolAddress),
     "Pool TVL not found"
   );
+  const poolTVL = liquidityPools.lookup(poolAddress);
   
   // For MVP, we assert loanAmount <= poolTVL to ensure positive LTV.
   assert(
