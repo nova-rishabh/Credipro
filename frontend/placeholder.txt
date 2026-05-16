@@ -1,0 +1,15 @@
+frontend/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+├── src/
+│   ├── components/
+│   │   ├── Dashboard.tsx
+│   │   ├── LoanRequestForm.tsx
+│   │   ├── DefaultResolution.tsx
+│   │   └── Header.tsx
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── theme.ts
+├── package.json
+└── tsconfig.json
