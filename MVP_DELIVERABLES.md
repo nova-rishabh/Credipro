@@ -197,6 +197,10 @@ await contract.verify_master_loan_agreement(
 3. **Timestamp Handling:** `disbursalTimestamp` initialized to 0; should be set during disbursement.
 4. **No Division Operator:** LTV calculation simplified; future versions need witness-based division.
 5. **Off-Chain Identity Reveal:** Circuit proves conditions, but actual decryption happens off-chain.
+6. **No Persistent DB:** All state (Ledger, Oracle, Credit Bureau) is in-memory and is lost on backend restart.
+7. **Mock Cryptography:** Uses standard Node `crypto` / SHA256 instead of ZK-friendly cryptographic primitives (like Poseidon hashes or actual zero-knowledge proofs).
+8. **Logging:** Relies entirely on simple `console.log` statements rather than a structured, persistent logging framework (like Winston or Pino).
+9. **Authentication:** `DISABLE_AUTH` is used as a workaround for hackathon velocity, meaning the API is effectively unprotected in its current dev state.
 
 ### Future Improvements
 - [ ] Add event logging for all state transitions.
