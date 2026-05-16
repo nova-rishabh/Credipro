@@ -8,8 +8,8 @@
  * In production: Integrates with real zkTLS services (zkPass, Reclaim Protocol, etc.)
  */
 
-import { CreditData, IdentityData, EncryptedIdentity, Bytes32, toBytes32 } from './types';
-import { randomBytes, scryptSync } from 'crypto';
+import { CreditData, IdentityData, EncryptedIdentity, Bytes32 } from './types';
+import { randomBytes, scryptSync, createHash, createCipheriv, createDecipheriv } from 'crypto';
 
 /**
  * Mock Credit Bureau
@@ -66,24 +66,18 @@ export class MockCreditBureau {
    * Score varies based on borrowerId hash
    */
   private deterministic_credit_score(borrowerId: string): number {
-    const hash = require('crypto')
-      .createHash('sha256')
-      .update(borrowerId)
-      .digest('hex');
+    const hash = createHash('sha256').update(borrowerId).digest('hex');
     const hashNum = parseInt(hash.substring(0, 8), 16);
-    return 600 + (hashNum % 250); // 600-850
+    return 600 + (hashNum % 250);
   }
 
   /**
    * Deterministic monthly income generation
    */
   private deterministic_monthly_income(borrowerId: string): number {
-    const hash = require('crypto')
-      .createHash('sha256')
-      .update(borrowerId + 'income')
-      .digest('hex');
+    const hash = createHash('sha256').update(borrowerId + 'income').digest('hex');
     const hashNum = parseInt(hash.substring(0, 8), 16);
-    return 3000 + (hashNum % 7000); // $3,000-$10,000
+    return 3000 + (hashNum % 7000);
   }
 }
 
@@ -93,7 +87,7 @@ export class MockCreditBureau {
  */
 export class MockIdentityProvider {
   private identities: Map<string, IdentityData> = new Map();
-  private encryptionKey: string = 'credipro-mvp-key'; // Mock key (don't use in production!)
+  private encryptionKey: string = process.env.CREDIPRO_ENCRYPTION_KEY || 'credipro-mvp-key-do-not-use';
 
   /**
    * Register a borrower's identity
@@ -134,11 +128,7 @@ export class MockIdentityProvider {
       const key = scryptSync(this.encryptionKey, salt, 32);
 
       // Decrypt using AES-256-GCM
-      const decipher = require('crypto').createDecipheriv(
-        'aes-256-gcm',
-        key,
-        iv
-      );
+      const decipher = createDecipheriv('aes-256-gcm', key, iv);
       decipher.setAuthTag(authTag);
       let decrypted = decipher.update(ciphertext);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
@@ -155,10 +145,7 @@ export class MockIdentityProvider {
    * Generate deterministic mock identity
    */
   private generateMockIdentity(borrowerId: string): IdentityData {
-    const hash = require('crypto')
-      .createHash('sha256')
-      .update(borrowerId)
-      .digest('hex');
+    const hash = createHash('sha256').update(borrowerId).digest('hex');
 
     const firstNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'];
     const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'];
@@ -185,7 +172,7 @@ export class MockIdentityProvider {
     const iv = randomBytes(12); // 12 bytes for GCM
     const key = scryptSync(this.encryptionKey, salt, 32);
 
-    const cipher = require('crypto').createCipheriv('aes-256-gcm', key, iv);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
     let ciphertext = cipher.update(identityJson, 'utf-8', 'hex');
     ciphertext += cipher.final('hex');
 
@@ -260,8 +247,12 @@ export class OracleCommittee {
   /**
    * Clear votes for a loan (for testing)
    */
-  clearVotes(loanId: Bytes32): void {
-    this.votes.delete(loanId);
+  clearVotes(loanId?: Bytes32): void {
+    if (loanId) {
+      this.votes.delete(loanId);
+    } else {
+      this.votes.clear();
+    }
   }
 
   /**
@@ -335,7 +326,7 @@ export class MockOracleService {
    * Clear all data (for testing)
    */
   clearAllData(): void {
-    this.oracleCommittee.clearVotes(toBytes32('0x' + '0'.repeat(64)));
+    this.oracleCommittee.clearVotes();
     console.log('[MOCK-ORACLE] All data cleared');
   }
 }

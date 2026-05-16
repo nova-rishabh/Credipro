@@ -29,10 +29,10 @@
   "license": "MIT",
   "dependencies": {
     "@midnight-ntwrk/compact-js": "^2.5.0",
-    "@midnight-ntwrk/wallet-sdk": "^1.0.0",
     "@midnight-ntwrk/midnight-js-contracts": "^4.0.0",
     "@midnight-ntwrk/midnight-js-types": "^4.0.0",
     "@midnight-ntwrk/midnight-js-utils": "^4.0.0",
+    "@midnight-ntwrk/wallet-sdk": "^1.0.0",
     "axios": "^1.6.0",
     "dotenv": "^16.3.0",
     "ethers": "^6.7.0",
@@ -44,6 +44,7 @@
   "devDependencies": {
     "@types/express": "^4.17.0",
     "@types/jest": "^29.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",

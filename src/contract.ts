@@ -5,22 +5,26 @@
  * Handles circuit calls, proof generation, and state management.
  */
 
+import { createHash } from 'crypto';
 import { CircuitInputs, CircuitOutput, RequestLoanResponse, TriggerSlashingResponse, LoanRecord, Bytes32, toBytes32 } from './types';
 import { initializeBorrowerContext, storeLoanDetails } from './prover';
+import { MockOracleService } from './oracle';
 
 /**
  * Credipro contract client
  * Wraps midnight-js SDK for clean API
  */
 export class CrediproClient {
-  private readonly PROOF_GENERATION_TIMEOUT = 30000; // 30 seconds
+  private readonly PROOF_GENERATION_TIMEOUT = 30000;
+  private oracleService?: MockOracleService;
 
-  constructor(contractAddress: Bytes32, wallet: any) {
-    // These will be used in a real implementation
-    // For now, we are silencing the linter
-    if (contractAddress || wallet) {
-      // Do nothing
-    }
+  constructor(
+    private contractAddress: Bytes32,
+    private wallet: any,
+    oracleService?: MockOracleService,
+  ) {
+    this.oracleService = oracleService;
+    console.log(`[CONTRACT] CrediproClient initialized at ${this.contractAddress}`);
   }
 
   /**
@@ -247,9 +251,12 @@ export class CrediproClient {
       console.log('[CONTRACT] getOracleApprovals() called');
       console.log(`  loanId: ${loanId}`);
 
-      // Query oracleCommitteeSignatures ledger
-      // For MVP: return mock data
-      return 2; // Mock: 2 of 3 approvals
+      if (this.oracleService) {
+        return this.oracleService.getApprovalCount(loanId);
+      }
+
+      // Fallback: mock 2 of 3 approvals
+      return 2;
     } catch (error) {
       console.error('[CONTRACT ERROR] getOracleApprovals:', error);
       return 0;
@@ -262,11 +269,8 @@ export class CrediproClient {
   async getPoolDetails(poolAddress: Bytes32): Promise<{ tvl: bigint; riskParams: any } | null> {
     try {
       console.log('[CONTRACT] getPoolDetails() called');
-      if (poolAddress) {
-        // Do nothing
-      }
+      console.log(`  poolAddress: ${poolAddress}`);
 
-      // Query publicRiskParameters and liquidityPools ledgers
       const mockParams = {
         tvl: BigInt(10000000), // 10M TVL
         riskParams: {
@@ -287,7 +291,8 @@ export class CrediproClient {
    * Private: Call circuit and generate proof
    */
   private async callCircuit(circuitName: string, inputs: any): Promise<CircuitOutput> {
-    console.log(`[CIRCUIT] Calling ${circuitName}...`);
+    console.log(`[CIRCUIT] Calling ${circuitName} on ${this.contractAddress}...`);
+    void this.wallet; // Reference for future wallet integration
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -324,10 +329,7 @@ export class CrediproClient {
     const inputStr = JSON.stringify(inputs, (_, value) =>
       typeof value === 'bigint' ? value.toString() : value
     );
-    const hash = require('crypto')
-      .createHash('sha256')
-      .update(`${circuitName}:${inputStr}`)
-      .digest('hex');
+    const hash = createHash('sha256').update(`${circuitName}:${inputStr}`).digest('hex');
     return '0x' + hash;
   }
 
@@ -360,9 +362,10 @@ export class CrediproClient {
  */
 export async function createCrediproClient(
   contractAddress: Bytes32,
-  wallet: any
+  wallet: any,
+  oracleService?: MockOracleService
 ): Promise<CrediproClient> {
-  const client = new CrediproClient(contractAddress, wallet);
+  const client = new CrediproClient(contractAddress, wallet, oracleService);
   console.log(`[SDK] Credipro client initialized at ${contractAddress}`);
   return client;
 }
