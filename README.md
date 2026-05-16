@@ -57,15 +57,49 @@ Credipro uses **three core innovations**:
 git clone https://github.com/nova-rishabh/Credipro.git
 cd Credipro
 
-# Install dependencies
+# Install root dependencies (SDK & Backend)
 npm install
 
-# Compile Compact contract
-npm run compile:contract
+# Install frontend dependencies (React & Webpack polyfills)
+cd frontend
+npm install
+cd ..
 
-# Deploy to Midnight testnet
-npm run deploy:testnet
+# Compile Compact smart contract & SDK
+npm run compile:contract
+npm run build
 ```
+
+### Running the Application
+
+To run the complete Credipro stack, you will need **two separate terminal windows**.
+
+**Terminal 1: Start the Backend API**
+This runs the local API, the mock zkTLS oracle, and the Express server on port 3001.
+```bash
+# From the root directory
+npm run start:backend
+```
+
+**Terminal 2: Start the React Frontend**
+This runs the React UI with Chakra and the Lace Wallet integration on port 3000.
+```bash
+# From the root directory
+npm run start:frontend
+```
+
+*(Note: The frontend uses `react-app-rewired` to polyfill Node.js core modules like `crypto` required by the Midnight SDK in the browser).*
+
+### Midnight Lace Wallet Setup
+
+Since Credipro is built on the Midnight Network, you **must** have the official wallet extension installed to interact with the decentralized application.
+
+1. Open a Chromium-based browser (Chrome, Edge, Brave).
+2. Go to the Chrome Web Store and search for **Lace Wallet** (or visit the official Midnight Network resources).
+3. Install the extension and pin it to your toolbar.
+4. Open the extension, follow the onboarding to create a new test wallet, and securely back up your seed phrase.
+5. In the Lace Wallet settings, ensure your network is set to **Midnight Testnet**.
+6. Refresh the Credipro application at `http://localhost:3000`. The "Connect Wallet" button will now successfully link your Lace Wallet to the dApp!
 
 ### Example: Request a Loan
 
@@ -294,10 +328,12 @@ Credipro/
 
 ### For Borrowers
 
-1. **Onboarding**
-   - Connect Lace Wallet extension
-   - Sign Master Loan Agreement (off-chain, legal contract)
-   - Store encrypted identity locally (NFC passport chip or secure storage)
+1. **Wallet Setup & Onboarding**
+   - Install the **Lace Wallet** extension from the Chrome Web Store.
+   - Create a test wallet and switch to the **Midnight Testnet**.
+   - Navigate to `http://localhost:3000` and click **Connect Wallet**.
+   - Sign the Master Loan Agreement (off-chain, legal contract).
+   - Store encrypted identity locally (NFC passport chip or secure storage).
 
 2. **Loan Request**
    - Mock-authenticate with credit bureau (zkTLS or mock oracle)
