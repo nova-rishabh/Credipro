@@ -1,0 +1,15 @@
+# Foundational Context: The "Why" and "Who"
+
+## What this solves?
+[cite_start]Credipro directly solves the fatal "Sybil default paradox" inherent in uncollateralized Web3 lending[cite: 11, 121]. [cite_start]In purely anonymous or pseudonymous networks, malicious actors can generate zero-knowledge proofs of off-chain assets, secure undercollateralized loans, and default without real-world consequences[cite: 12]. [cite_start]The attacker simply abandons their decentralized identifier (DID) and repeats the process, bankrupting the protocol with cascading bad debt[cite: 13, 127]. [cite_start]Credipro solves this by tying a cryptographic proof of a real-world identity to the loan[cite: 14]. [cite_start]If a default occurs, a cryptographic "slashing mechanism" selectively reveals the user's identity strictly to the specific underwriter who absorbed the loss[cite: 15]. 
+
+**Crucial Legal Caveat:** This technical mechanism is paired with a mandatory off-chain Master Loan Agreement (MLA) signed during onboarding. The smart contract acts as the enforcement trigger, but the MLA defines the legal jurisdiction and the exact data points revealed (e.g., National ID, Legal Name) to ensure the underwriter has a valid path to off-chain collections.
+
+## Why not other tech, why Midnight?
+[cite_start]Transparent legacy blockchains natively prevent the onboarding of institutional capital because they broadcast proprietary trading strategies, portfolio compositions, and sensitive user data to the public[cite: 16, 106]. [cite_start]Meanwhile, "absolute privacy" networks (like Aztec) create immense friction for the KYC/AML compliance required by institutions[cite: 17, 232]. [cite_start]Midnight provides the necessary "rational privacy" framework, allowing data to be shielded by default but selectively disclosed for compliance and auditability[cite: 18, 109]. 
+
+[cite_start]Furthermore, Midnight utilizes a dual-token system where the DUST token is used to pay for zero-knowledge proof verification, theoretically insulating the protocol from the unpredictable gas volatility that plagues Ethereum-based Layer 2 rollups[cite: 19, 201]. *(Hackathon Note: While DUST is designed for predictable fees, DUST generation rates on the Preview/Test networks may vary under load, so proof submission bottlenecks must be monitored during the build phase).*
+
+## Who needs this?
+* [cite_start]**Institutional Underwriters:** Traditional financial entities seeking to deploy capital into Web3 without broadcasting their portfolio composition to the global market, while maintaining the ability to pursue off-chain legal recourse for defaulted debt[cite: 20, 107].
+* [cite_start]**Retail Borrowers:** Users who want favorable, undercollateralized loan terms by leveraging their real-world credit histories, without doxxing their identities or exact financial balances to the public blockchain[cite: 21, 143].
