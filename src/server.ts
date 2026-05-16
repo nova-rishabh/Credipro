@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { CrediproClient } from './contract';
@@ -11,7 +12,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'credipro-dev-secret';
 
+app.use(cors());
 app.use(express.json());
+
+export interface AuthenticatedRequest extends Request {
+  user?: any;
+}
 
 const contractAddress = toBytes32(process.env.MIDNIGHT_CONTRACT_ADDRESS || '0x' + '1'.repeat(64));
 const client = new CrediproClient(contractAddress, {}, mockOracleService);
@@ -25,7 +31,8 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 
   try {
     const token = authHeader.split(' ')[1];
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    (req as AuthenticatedRequest).user = decoded;
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
@@ -41,7 +48,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-app.post('/api/loan/request', authMiddleware, async (req: Request, res: Response) => {
+app.post('/api/loan/request', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { loanAmount, poolAddress, defaultTermDays } = req.body;
 
@@ -67,7 +74,7 @@ app.post('/api/loan/request', authMiddleware, async (req: Request, res: Response
   }
 });
 
-app.post('/api/loan/slash', authMiddleware, async (req: Request, res: Response) => {
+app.post('/api/loan/slash', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { loanId } = req.body;
 
@@ -89,7 +96,7 @@ app.post('/api/loan/slash', authMiddleware, async (req: Request, res: Response) 
   }
 });
 
-app.get('/api/loan/:id', authMiddleware, async (req: Request, res: Response) => {
+app.get('/api/loan/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const loan: LoanRecord | null = await client.getLoanDetails(toBytes32(req.params.id));
 
@@ -108,7 +115,7 @@ app.get('/api/loan/:id', authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
-app.get('/api/pool/:address', authMiddleware, async (req: Request, res: Response) => {
+app.get('/api/pool/:address', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const pool = await client.getPoolDetails(toBytes32(req.params.address));
 
@@ -129,7 +136,7 @@ app.get('/api/pool/:address', authMiddleware, async (req: Request, res: Response
   }
 });
 
-app.post('/api/oracle/vote', authMiddleware, async (req: Request, res: Response) => {
+app.post('/api/oracle/vote', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { loanId, oracleMemberId } = req.body;
 
@@ -157,7 +164,7 @@ app.post('/api/oracle/vote', authMiddleware, async (req: Request, res: Response)
   }
 });
 
-app.get('/api/oracle/approvals/:loanId', authMiddleware, async (req: Request, res: Response) => {
+app.get('/api/oracle/approvals/:loanId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const approvals = await client.getOracleApprovals(toBytes32(req.params.loanId));
 
@@ -173,7 +180,7 @@ app.get('/api/oracle/approvals/:loanId', authMiddleware, async (req: Request, re
   }
 });
 
-app.get('/api/oracle/members', authMiddleware, (_req: Request, res: Response) => {
+app.get('/api/oracle/members', authMiddleware, (_req: AuthenticatedRequest, res: Response) => {
   const members = mockOracleService.getOracleMembers();
   res.json({ members });
 });
