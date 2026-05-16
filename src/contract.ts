@@ -1,19 +1,9 @@
-/**
- * Credipro Contract Interaction Layer
- *
- * Provides high-level interface for interacting with the Credipro smart contract.
- * Handles circuit calls, proof generation, and state management.
- */
-
-import { createHash } from 'crypto';
 import { CircuitInputs, CircuitOutput, RequestLoanResponse, TriggerSlashingResponse, LoanRecord, Bytes32, toBytes32 } from './types';
 import { initializeBorrowerContext, storeLoanDetails } from './prover';
 import { MockOracleService } from './oracle';
+import { logger } from './logger';
+import { hashNoPad } from 'poseidon-goldilocks';
 
-/**
- * Credipro contract client
- * Wraps midnight-js SDK for clean API
- */
 export class CrediproClient {
   private readonly PROOF_GENERATION_TIMEOUT = 30000;
   private oracleService?: MockOracleService;
@@ -24,17 +14,9 @@ export class CrediproClient {
     oracleService?: MockOracleService,
   ) {
     this.oracleService = oracleService;
-    console.log(`[CONTRACT] CrediproClient initialized at ${this.contractAddress}`);
+    logger.info(`[CONTRACT] CrediproClient initialized at ${this.contractAddress}`);
   }
 
-  /**
-   * Initialize borrower context before loan request
-   *
-   * FLOW:
-   * 1. Borrower provides credit score and encrypted identity
-   * 2. System stores in witness context
-   * 3. Ready to call requestLoan() circuit
-   */
   async initializeBorrower(
     creditScore: number,
     encryptedIdentity: any,
@@ -50,46 +32,28 @@ export class CrediproClient {
     }
 
     initializeBorrowerContext(creditScore, encryptedIdentity, secretKey, lenderAddress);
-    console.log('[CONTRACT] Borrower context initialized');
+    logger.info('[CONTRACT] Borrower context initialized');
   }
 
-  /**
-   * Request a loan (calls requestLoan circuit)
-   *
-   * CIRCUIT LOGIC:
-   * 1. Retrieve witness: creditScore, identity, lender address
-   * 2. Assert: creditScore >= minCreditScore (privately)
-   * 3. Assert: loanAmount <= poolTVL (LTV check)
-   * 4. Create identity commitment
-   * 5. Record loan on ledger
-   * 6. Return loanId
-   *
-   * ZERO-KNOWLEDGE:
-   * - Proves creditworthiness WITHOUT revealing actual score
-   * - Binds identity WITHOUT revealing real name/ID
-   * - Generates zk-SNARK (BLS12-381 circuit)
-   */
   async requestLoan(
     loanAmount: bigint,
     poolAddress: Bytes32,
     defaultTermDays: bigint
   ): Promise<RequestLoanResponse> {
     try {
-      console.log('[CONTRACT] requestLoan() called');
-      console.log(`  loanAmount: ${loanAmount}`);
-      console.log(`  poolAddress: ${poolAddress}`);
-      console.log(`  defaultTermDays: ${defaultTermDays}`);
+      logger.info('[CONTRACT] requestLoan() called');
+      logger.info(`  loanAmount: ${loanAmount}`);
+      logger.info(`  poolAddress: ${poolAddress}`);
+      logger.info(`  defaultTermDays: ${defaultTermDays}`);
 
-      // Prepare circuit inputs
       const inputs: CircuitInputs = {
         loanAmount,
         poolAddress,
         defaultTermDays,
-        borrowerPK: toBytes32('0x' + '1'.repeat(64)), // Placeholder
+        borrowerPK: toBytes32('0x' + '1'.repeat(64)),
         mlaSigned: true
       };
 
-      // Call requestLoan circuit (mock for MVP)
       const output = await this.callCircuit('requestLoan', inputs);
 
       if (!output.loanId) {
@@ -99,23 +63,22 @@ export class CrediproClient {
         };
       }
 
-      // Store loan details for future reference
       storeLoanDetails({
         loanId: output.loanId,
         disbursalTimestamp: Math.floor(Date.now() / 1000),
         defaultThreshold: defaultTermDays
       });
 
-      console.log(`[CONTRACT] Loan approved! ID: ${output.loanId}`);
+      logger.info(`[CONTRACT] Loan approved! ID: ${output.loanId}`);
 
       return {
         success: true,
         loanId: output.loanId,
         proof: output.proof,
-        gasUsed: '150000' // Mock gas estimate
+        gasUsed: '150000'
       };
     } catch (error) {
-      console.error('[CONTRACT ERROR] requestLoan:', error);
+      logger.error('[CONTRACT ERROR] requestLoan:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -123,28 +86,11 @@ export class CrediproClient {
     }
   }
 
-  /**
-   * Trigger slashing (calls triggerSlashing circuit)
-   *
-   * CIRCUIT LOGIC:
-   * 1. Retrieve loan record
-   * 2. Assert: not already defaulted
-   * 3. Assert: default deadline exceeded (via witness)
-   * 4. Assert: oracle consensus (>= 2 of 3)
-   * 5. Mark loan as defaulted
-   * 6. Trigger identity reveal (off-chain oracle action)
-   *
-   * ZERO-KNOWLEDGE:
-   * - Circuit proves conditions are met
-   * - Identity reveal happens off-chain (not exposed in circuit)
-   * - Oracle committee handles actual decryption
-   */
   async triggerSlashing(loanId: Bytes32): Promise<TriggerSlashingResponse> {
     try {
-      console.log('[CONTRACT] triggerSlashing() called');
-      console.log(`  loanId: ${loanId}`);
+      logger.info('[CONTRACT] triggerSlashing() called');
+      logger.info(`  loanId: ${loanId}`);
 
-      // Check if enough oracle approvals exist
       const oracleApprovals = await this.getOracleApprovals(loanId);
 
       if (oracleApprovals < 2) {
@@ -155,21 +101,19 @@ export class CrediproClient {
         };
       }
 
-      // Call triggerSlashing circuit
       await this.callCircuit('triggerSlashing', { loanId });
 
-      console.log(`[CONTRACT] Slashing triggered for loan ${loanId}`);
+      logger.info(`[CONTRACT] Slashing triggered for loan ${loanId}`);
 
-      // Trigger off-chain oracle decryption
       await this.triggerOracleDecryption(loanId);
 
       return {
         success: true,
         marked: true,
-        gasUsed: '120000' // Mock gas estimate
+        gasUsed: '120000'
       };
     } catch (error) {
-      console.error('[CONTRACT ERROR] triggerSlashing:', error);
+      logger.error('[CONTRACT ERROR] triggerSlashing:', error);
       return {
         success: false,
         marked: false,
@@ -178,23 +122,14 @@ export class CrediproClient {
     }
   }
 
-  /**
-   * Verify Master Loan Agreement signature
-   *
-   * CIRCUIT LOGIC:
-   * 1. Call verify_mla_signature witness
-   * 2. Assert: signature is valid
-   * 3. Return (no state change)
-   */
   async verifyMasterLoanAgreement(
     borrowerPK: Bytes32,
     mlHash: Bytes32,
     signature: Uint8Array
   ): Promise<boolean> {
     try {
-      console.log('[CONTRACT] verifyMasterLoanAgreement() called');
+      logger.info('[CONTRACT] verifyMasterLoanAgreement() called');
 
-      // Call circuit (mock)
       const result = await this.callCircuit('verify_master_loan_agreement', {
         borrowerPK,
         mlHash,
@@ -203,76 +138,59 @@ export class CrediproClient {
 
       return result.success;
     } catch (error) {
-      console.error('[CONTRACT ERROR] verifyMasterLoanAgreement:', error);
+      logger.error('[CONTRACT ERROR] verifyMasterLoanAgreement:', error);
       return false;
     }
   }
 
-  /**
-   * Query loan details from ledger
-   *
-   * QUERIES (public data):
-   * - Get loan record by ID
-   * - Check if loan is defaulted
-   * - Get lender address
-   */
   async getLoanDetails(loanId: Bytes32): Promise<LoanRecord | null> {
     try {
-      console.log('[CONTRACT] getLoanDetails() called');
-      console.log(`  loanId: ${loanId}`);
+      logger.info('[CONTRACT] getLoanDetails() called');
+      logger.info(`  loanId: ${loanId}`);
 
-      // Query encryptedIdentityCommitments ledger
-      // For MVP: return mock data
       const mockLoan: LoanRecord = {
         loanId,
         identityHash: toBytes32('0x' + '2'.repeat(64)),
         lenderAddress: toBytes32('0x' + '3'.repeat(64)),
         borrowerPublicKey: toBytes32('0x' + '4'.repeat(64)),
         disbursedAmount: BigInt(100000),
-        disbursalTimestamp: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
-        defaultThreshold: BigInt(180), // 180 days
+        disbursalTimestamp: Math.floor(Date.now() / 1000) - 86400 * 30,
+        defaultThreshold: BigInt(180),
         isDefaulted: false,
-        interestRate: 500 // 5%
+        interestRate: 500
       };
 
-      console.log(`[CONTRACT] Retrieved loan ${loanId}`);
+      logger.info(`[CONTRACT] Retrieved loan ${loanId}`);
       return mockLoan;
     } catch (error) {
-      console.error('[CONTRACT ERROR] getLoanDetails:', error);
+      logger.error('[CONTRACT ERROR] getLoanDetails:', error);
       return null;
     }
   }
 
-  /**
-   * Query oracle approval count for a loan
-   */
   async getOracleApprovals(loanId: Bytes32): Promise<number> {
     try {
-      console.log('[CONTRACT] getOracleApprovals() called');
-      console.log(`  loanId: ${loanId}`);
+      logger.info('[CONTRACT] getOracleApprovals() called');
+      logger.info(`  loanId: ${loanId}`);
 
       if (this.oracleService) {
-        return this.oracleService.getApprovalCount(loanId);
+        return await this.oracleService.getApprovalCount(loanId);
       }
 
-      // Fallback: mock 2 of 3 approvals
       return 2;
     } catch (error) {
-      console.error('[CONTRACT ERROR] getOracleApprovals:', error);
+      logger.error('[CONTRACT ERROR] getOracleApprovals:', error);
       return 0;
     }
   }
 
-  /**
-   * Get liquidity pool details
-   */
   async getPoolDetails(poolAddress: Bytes32): Promise<{ tvl: bigint; riskParams: any } | null> {
     try {
-      console.log('[CONTRACT] getPoolDetails() called');
-      console.log(`  poolAddress: ${poolAddress}`);
+      logger.info('[CONTRACT] getPoolDetails() called');
+      logger.info(`  poolAddress: ${poolAddress}`);
 
       const mockParams = {
-        tvl: BigInt(10000000), // 10M TVL
+        tvl: BigInt(10000000),
         riskParams: {
           minCreditScore: 680,
           maxLTV: 80,
@@ -282,17 +200,14 @@ export class CrediproClient {
 
       return mockParams;
     } catch (error) {
-      console.error('[CONTRACT ERROR] getPoolDetails:', error);
+      logger.error('[CONTRACT ERROR] getPoolDetails:', error);
       return null;
     }
   }
 
-  /**
-   * Private: Call circuit and generate proof
-   */
   private async callCircuit(circuitName: string, inputs: any): Promise<CircuitOutput> {
-    console.log(`[CIRCUIT] Calling ${circuitName} on ${this.contractAddress}...`);
-    void this.wallet; // Reference for future wallet integration
+    logger.info(`[CIRCUIT] Calling ${circuitName} on ${this.contractAddress}...`);
+    void this.wallet;
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -300,8 +215,6 @@ export class CrediproClient {
       }, this.PROOF_GENERATION_TIMEOUT);
 
       try {
-        // Mock circuit execution
-        // In production: use @midnight-ntwrk/compact-js to call actual circuits
         const mockProof = this.generateMockProof(circuitName, inputs);
         const mockLoanId = toBytes32('0x' + '5'.repeat(64));
 
@@ -320,52 +233,37 @@ export class CrediproClient {
     });
   }
 
-  /**
-   * Private: Generate mock proof (for MVP testing)
-   *
-   * In production: Use BLS12-381 elliptic curve to generate real zk-SNARK
-   */
   private generateMockProof(circuitName: string, inputs: any): string {
     const inputStr = JSON.stringify(inputs, (_, value) =>
       typeof value === 'bigint' ? value.toString() : value
     );
-    const hash = createHash('sha256').update(`${circuitName}:${inputStr}`).digest('hex');
-    return '0x' + hash;
+    
+    // Use Poseidon hash for mock ZK proof generation
+    const data = Buffer.from(`${circuitName}:${inputStr}`);
+    const hashValues = [];
+    for (let i = 0; i < data.length; i += 32) {
+      const chunk = data.subarray(i, i + 32);
+      const padded = Buffer.alloc(32);
+      chunk.copy(padded);
+      hashValues.push(BigInt('0x' + padded.toString('hex')));
+    }
+    if (hashValues.length === 0) hashValues.push(0n);
+    const result = hashNoPad([hashValues[0]])[0];
+    return '0x' + result.toString(16).padStart(64, '0');
   }
 
-  /**
-   * Private: Trigger oracle committee to decrypt identity
-   *
-   * FLOW:
-   * 1. Signal oracle committee that slashing conditions are met
-   * 2. Oracle committee members vote (2 of 3 required)
-   * 3. If consensus: perform off-chain decryption
-   * 4. Send encrypted identity to affected lender
-   * 5. Lender verifies MLA and pursues legal action
-   */
   private async triggerOracleDecryption(loanId: Bytes32): Promise<void> {
-    console.log('[ORACLE] Triggering decryption for loan', loanId);
-
-    // In production:
-    // 1. Emit on-chain event: LogSlashingTriggered(loanId)
-    // 2. Oracle committee monitors events
-    // 3. Off-chain: Perform threshold decryption
-    // 4. Send identity to lender via secure channel
-
-    // For MVP: Log placeholder
-    console.log('[ORACLE] Would send decrypted identity to lender...');
+    logger.info('[ORACLE] Triggering decryption for loan', loanId);
+    logger.info('[ORACLE] Would send decrypted identity to lender...');
   }
 }
 
-/**
- * Factory function to create and initialize client
- */
 export async function createCrediproClient(
   contractAddress: Bytes32,
   wallet: any,
   oracleService?: MockOracleService
 ): Promise<CrediproClient> {
   const client = new CrediproClient(contractAddress, wallet, oracleService);
-  console.log(`[SDK] Credipro client initialized at ${contractAddress}`);
+  logger.info(`[SDK] Credipro client initialized at ${contractAddress}`);
   return client;
 }

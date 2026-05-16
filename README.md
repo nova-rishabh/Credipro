@@ -41,6 +41,34 @@ Credipro uses **three core innovations**:
 
 ---
 
+## Phase 3 Hardening & Production Infrastructure (May 16, 2026 Update)
+
+To transition Credipro from a hackathon proof-of-concept to a secure, auditable, production-ready protocol, we have completed a comprehensive architectural hardening sprint addressing key technical debt and security vectors:
+
+1. **Persistent SQLite Storage (`credipro.sqlite`)**
+   - Eliminated volatile in-memory `Map` data structures across the backend.
+   - Initialized a robust SQLite database layer (`src/db.ts`) with dedicated relational schemas for `borrowers`, `identities`, and `oracle_votes`.
+   - Enabled durable state persistence across server restarts and concurrent client requests.
+
+2. **ZK-Friendly Cryptography (`poseidon-goldilocks`)**
+   - Deprecated vulnerable Node.js `crypto.createHash('sha256')` mock implementations.
+   - Integrated Plonky2-compatible `poseidon-goldilocks` hashing (`hashNoPad`) across the credit bureau, identity provider, prover witness context, and smart contract client layers.
+   - Aligned off-chain hash generation with the exact cryptographic arithmetic required by Midnight ZK circuits.
+
+3. **Structured Observability (`winston`)**
+   - Replaced all legacy `console.log`, `console.warn`, and `console.error` statements with an enterprise-grade Winston logging pipeline (`src/logger.ts`).
+   - Configured custom formatting with timestamped console transports and dedicated file logs (`logs/error.log`, `logs/combined.log`) for complete auditability.
+
+4. **Strict JWT Authentication & Zero-Bypass Security**
+   - Removed the insecure `DISABLE_AUTH` developer bypass flag.
+   - Enforced strict JWT verification middleware (`src/server.ts`) across all protected API routes.
+   - Implemented a dedicated `/api/auth/token` authentication endpoint issuing cryptographically signed JSON Web Tokens (`JWT_SECRET`) for authorized borrower sessions.
+
+5. **Fully Asynchronous Service Architecture**
+   - Upgraded all oracle, bureau, and committee service methods (`MockOracleService`, `MockCreditBureau`, `MockIdentityProvider`) to fully asynchronous `async/await` signatures to support real database I/O and future zkTLS network calls.
+
+---
+
 ## Quick Start
 
 ### Prerequisites

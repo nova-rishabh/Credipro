@@ -22,3 +22,7 @@ Thumbs.db
 
 # Build artifacts
 *.tsbuildinfo
+
+# Database
+*.sqlite
+*.sqlite3
