@@ -8,7 +8,7 @@
  * In production: Integrates with real zkTLS services (zkPass, Reclaim Protocol, etc.)
  */
 
-import { CreditData, IdentityData, EncryptedIdentity, Bytes32, toBytes32 } from './types';
+import { CreditData, IdentityData, EncryptedIdentity, Bytes32 } from './types';
 import { randomBytes, scryptSync } from 'crypto';
 
 /**
@@ -237,6 +237,7 @@ export class OracleCommittee {
     const loanVotes = this.votes.get(loanIdStr)!;
     if (loanVotes.has(oracleMemberId)) {
       console.warn(`[ORACLE] Member ${oracleMemberId} already voted for ${loanIdStr}`);
+      // Ignore duplicate vote, but still return current consensus status
       return loanVotes.size >= 2;
     }
     loanVotes.add(oracleMemberId);
@@ -262,6 +263,13 @@ export class OracleCommittee {
    */
   clearVotes(loanId: Bytes32): void {
     this.votes.delete(loanId);
+  }
+
+  /**
+   * Clear all oracle votes (for testing)
+   */
+  clearAllVotes(): void {
+    this.votes.clear();
   }
 
   /**
@@ -335,7 +343,9 @@ export class MockOracleService {
    * Clear all data (for testing)
    */
   clearAllData(): void {
-    this.oracleCommittee.clearVotes(toBytes32('0x' + '0'.repeat(64)));
+    this.creditBureau = new MockCreditBureau();
+    this.identityProvider = new MockIdentityProvider();
+    this.oracleCommittee = new OracleCommittee();
     console.log('[MOCK-ORACLE] All data cleared');
   }
 }
