@@ -466,6 +466,45 @@ npm test:coverage
 3. **Make changes** and ensure tests pass
    ```bash
    npm test
+
+   ## Deployment & Running (Testnet)
+
+   This project supports local development (mock mode), compiled local contract execution, and on-chain deployments to Midnight testnet. The `backend/scripts/deploy.ts` script (if present) will deploy the compiled contract artifact and return the deployed contract address.
+
+   Environment variables (important)
+   - `MIDNIGHT_RPC` — Midnight testnet RPC URL (required for on-chain mode)
+   - `MIDNIGHT_WALLET_SEED` or `MIDNIGHT_PRIVATE_KEY` — Deployer credentials (provide locally; do NOT commit)
+   - `MIDNIGHT_CONTRACT_ADDRESS` — Address written after successful deploy (optional)
+   - `USE_COMPILED_CONTRACT` — `true` to run using the local compiled contract binding
+   - `USE_ONCHAIN_CONTRACT` — `true` to use the on-chain contract via Midnight SDK
+   - `WRITE_ENV_ON_SUCCESS` — `true` to append `MIDNIGHT_CONTRACT_ADDRESS` to `.env` after deploy
+
+   Run the deploy script (PowerShell example)
+
+   ```powershell
+   $env:MIDNIGHT_RPC='https://your-midnight-testnet-rpc'
+   $env:MIDNIGHT_WALLET_SEED='your twelve/24-word seed here'
+   $env:WRITE_ENV_ON_SUCCESS='true'
+   npx ts-node --esm backend/scripts/deploy.ts
+   ```
+
+   If you prefer a private key:
+
+   ```powershell
+   $env:MIDNIGHT_RPC='https://your-midnight-testnet-rpc'
+   $env:MIDNIGHT_PRIVATE_KEY='0xYOUR_PRIVATE_KEY'
+   $env:WRITE_ENV_ON_SUCCESS='true'
+   npx ts-node --esm backend/scripts/deploy.ts
+   ```
+
+   Notes
+   - The deploy script is intentionally manual: do not paste secrets in public places. If you do not want the script to write `.env`, omit `WRITE_ENV_ON_SUCCESS` and copy the printed contract address into your `.env` manually.
+   - You must fund the deployer address with testnet tokens (faucet) before running the script.
+
+   Frontend live mode
+   - The frontend runs in demo mode by default (no wallet required). To force real wallet mode and prevent the demo auto-connect, open the app with `?live` in the URL (e.g., `http://localhost:3000?live`).
+   - The frontend reads `/api/health` on load to discover `MIDNIGHT_CONTRACT_ADDRESS` and whether the backend is operating in mock or on-chain mode.
+
    ```
 
 4. **Submit a pull request**

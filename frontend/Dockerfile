@@ -1,12 +1,17 @@
-FROM node:20-alpine AS build
+# syntax=docker/dockerfile:1
+# Build from repo root: docker compose build frontend
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
+# Install dependencies (cached until package files change)
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci -w credipro-frontend
 
+# Build React app (cached until frontend source changes)
 COPY frontend ./frontend
 
 ARG REACT_APP_API_URL=http://localhost:3001
@@ -14,14 +19,11 @@ ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 RUN npm run build -w credipro-frontend
 
-FROM node:20-alpine
+WORKDIR /app/frontend
 
-WORKDIR /app
+ENV PORT=3000
+ENV NODE_ENV=production
 
-RUN npm install -g serve@14
+EXPOSE 3000
 
-COPY --from=build /app/frontend/build ./build
-
-EXPOSE 80
-
-CMD ["serve", "-s", "build", "-l", "80"]
+CMD ["node", "server.js"]

@@ -1,24 +1,27 @@
 import React from 'react';
-import { Box, Flex, Heading, Spacer } from '@chakra-ui/react';
 import { WalletConnectButton } from './WalletConnectButton';
+import HealthBanner from './HealthBanner';
 
 const Header: React.FC = () => {
   return (
-    <Box
-      bg="rgba(15, 12, 41, 0.8)"
-      backdropFilter="blur(10px)"
-      borderBottom="1px solid rgba(255, 255, 255, 0.1)"
-      p={4}
-      position="sticky"
-      top={0}
-      zIndex={10}
-    >
-      <Flex maxW="container.xl" mx="auto" align="center">
-        <Heading size="md" color="white">Credipro</Heading>
-        <Spacer />
-        <WalletConnectButton />
-      </Flex>
-    </Box>
+    <header className="sticky top-0 w-full z-40 bg-surface/60 backdrop-blur-md border-b border-white/10 h-[72px]">
+      <div className="max-w-container-max mx-auto h-full px-margin-desktop flex justify-between items-center">
+        <div className="flex items-center gap-8">
+          <HealthBanner />
+        </div>
+        <div className="flex items-center gap-unit-md">
+          <WalletConnectButton />
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-white/5 bg-transparent border-0 rounded-full transition-colors flex items-center justify-center cursor-pointer">
+              <span className="material-symbols-outlined text-on-surface-variant" data-icon="security">security</span>
+            </button>
+            <button className="p-2 hover:bg-white/5 bg-transparent border-0 rounded-full transition-colors text-primary flex items-center justify-center cursor-pointer">
+              <span className="material-symbols-outlined" data-icon="shutter_speed">shutter_speed</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 };
 

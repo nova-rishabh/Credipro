@@ -21,13 +21,10 @@ async function ensureAuthToken(): Promise<string> {
       authToken = String(data.token);
       return authToken;
     }
-    // If auth is disabled or token endpoint is unavailable, fall back gracefully
-    authToken = '';
-    return authToken;
-  } catch {
-    // Backend may not be running — allow unauthenticated fallback
-    authToken = '';
-    return authToken;
+    throw new Error(data.error || 'Failed to retrieve authentication token');
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    throw new Error('Authentication service unavailable');
   }
 }
 
@@ -49,12 +46,27 @@ async function apiFetch<T>(
     ...options.headers,
   };
 
+  // Timeout support using AbortController (default 30s)
+  const timeoutMs = (options as any).timeoutMs ?? 30000;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
   const response = await fetch(url, {
     ...options,
     headers,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(id));
 
-  const data = await response.json();
+  if (response.status === 0) {
+    throw new Error('Network error or request aborted');
+  }
+
+  let data: any;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
 
   if (!response.ok) {
     throw new Error(data.error || `Request failed with status ${response.status}`);
@@ -87,6 +99,7 @@ export interface LoanDetails {
 }
 
 export interface OracleMember {
+  id: string;
   name: string;
   publicKey: string;
 }
@@ -117,10 +130,20 @@ export interface SlashResponse {
 }
 
 export interface HealthResponse {
-  status: string;
-  timestamp: string;
-  contractAddress: string;
-  mockMode: boolean;
+  contractAddress?: string;
+  mockMode?: boolean;
+  compiledContractPresent?: boolean; 
+  contractConnected?: boolean;
+}
+
+export interface PoolDetails {
+  tvl: string;
+  riskParams: {
+    minCreditScore: number;
+    maxLTV: number;
+    minMonthlyIncome: string;
+    maxLoanAmount: string;
+  };
 }
 
 // ============================================
@@ -203,4 +226,12 @@ export async function getOracleApprovals(
  */
 export async function getHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>('/api/health');
+}
+
+/**
+ * Get pool details
+ * GET /api/pool/:address
+ */
+export async function getPoolDetails(address: string): Promise<PoolDetails | null> {
+  return apiFetch<PoolDetails | null>(`/api/pool/${address}`);
 }
