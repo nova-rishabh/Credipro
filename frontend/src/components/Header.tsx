@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Flex, Heading, Spacer, Image } from '@chakra-ui/react';
+import { Box, Flex, Heading, Spacer, Image, HStack } from '@chakra-ui/react';
 import { WalletConnectButton } from './WalletConnectButton';
 import HealthBanner from './HealthBanner';
 
@@ -33,18 +33,21 @@ const LogoOrTitle: React.FC = () => {
     '/logo/credipro.png',
   ];
 
-  if (failed) return <Heading size="md" color="white">Credipro</Heading>;
+  if (failed) return <Heading size="md" color="white" fontWeight="bold" letterSpacing="tight">Credipro</Heading>;
 
-  // Render first candidate; browser will try and if it 404s we hide and render title
   return (
-    <Image
-      src={candidates[0]}
-      alt="Credipro logo"
-      boxSize="40px"
-      objectFit="contain"
-      onError={() => setFailed(true)}
-      mr={3}
-    />
+    <HStack spacing={3} align="center">
+      <Image
+        src={candidates[0]}
+        alt="Credipro logo"
+        boxSize="40px"
+        objectFit="contain"
+        onError={() => setFailed(true)}
+      />
+      <Heading size="md" color="white" fontWeight="bold" letterSpacing="tight" display={{ base: 'none', sm: 'block' }}>
+        Credipro
+      </Heading>
+    </HStack>
   );
 };
 
