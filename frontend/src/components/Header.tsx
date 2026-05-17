@@ -1,7 +1,6 @@
 import React from 'react';
 import { WalletConnectButton } from './WalletConnectButton';
 import HealthBanner from './HealthBanner';
-import ModeToggle from './ModeToggle';
 
 const Header: React.FC = () => {
   return (
@@ -11,7 +10,6 @@ const Header: React.FC = () => {
           <HealthBanner />
         </div>
         <div className="flex items-center gap-unit-md">
-          <ModeToggle />
           <WalletConnectButton />
           <div className="flex items-center gap-2">
             <button className="p-2 hover:bg-white/5 bg-transparent border-0 rounded-full transition-colors flex items-center justify-center cursor-pointer">

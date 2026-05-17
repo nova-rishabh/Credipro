@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { Bytes32 } from '../types';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getMode, getMissingEnvVars } from '../lib/appMode';
 
 export function createHealthRouter(contractAddress: Bytes32): Router {
   const router = Router();
@@ -27,11 +26,9 @@ export function createHealthRouter(contractAddress: Bytes32): Router {
       status: 'ok',
       timestamp: new Date().toISOString(),
       contractAddress,
-      mode: getMode(),
-      mockMode: getMode() === 'demo',
+      mockMode: process.env.MOCK_ORACLE_MODE !== 'false',
       compiledContractPresent: contractPresent,
       contractConnected,
-      missingEnvVars: getMissingEnvVars(),
     });
   });
 

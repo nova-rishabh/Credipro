@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { getHealth, getMode as fetchMode, setMode as putMode } from '../api/crediproApi';
-
-type AppMode = 'demo' | 'production';
+import { getHealth } from '../api/crediproApi';
 
 interface CrediproContextState {
   isConnected: boolean;
@@ -10,13 +8,10 @@ interface CrediproContextState {
   connectWallet: () => Promise<void>;
   error: string | null;
   isDemoMode: boolean;
-  appMode: AppMode;
-  setAppMode: (mode: AppMode) => Promise<void>;
   contractAddress: string | null;
   mockMode: boolean;
   compiledContractPresent: boolean;
   contractConnected: boolean;
-  missingEnvVars: string[];
 }
 
 const CrediproContext = createContext<CrediproContextState | undefined>(undefined);
@@ -33,29 +28,26 @@ declare global {
   }
 }
 
+/**
+ * Check if we're in demo mode (no Lace wallet needed).
+ * Enabled by default for development; disable by adding ?live to the URL.
+ */
+function isDemoMode(): boolean {
+  if (typeof window === 'undefined') return true;
+  const params = new URLSearchParams(window.location.search);
+  return !params.has('live');
+}
+
 export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [appMode, setAppModeState] = useState<AppMode>('demo');
+  const demoMode = isDemoMode();
   const [contractAddress, setContractAddress] = useState<string | null>(null);
   const [mockModeState, setMockModeState] = useState<boolean>(true);
   const [compiledContractPresent, setCompiledContractPresent] = useState<boolean>(false);
   const [contractConnected, setContractConnected] = useState<boolean>(false);
-  const [missingEnvVars, setMissingEnvVars] = useState<string[]>([]);
-
-  const demoMode = appMode === 'demo';
-
-  const setAppMode = useCallback(async (mode: AppMode) => {
-    const result = await putMode(mode);
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    setAppModeState(mode);
-    setMockModeState(mode === 'demo');
-    setMissingEnvVars(result.missingEnvVars ?? []);
-  }, []);
 
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
@@ -63,7 +55,8 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     try {
       if (demoMode) {
-        await new Promise(r => setTimeout(r, 500));
+        // Demo mode: auto-connect with a mock address
+        await new Promise(r => setTimeout(r, 500)); // Simulate connection delay
         setIsConnected(true);
         setAddress('0x' + '1'.repeat(64));
         return;
@@ -94,28 +87,26 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [demoMode, connectWallet]);
 
-  // Fetch backend health and mode on mount
+  // Fetch backend health to learn runtime flags and deployed address
   useEffect(() => {
     let active = true;
-    const fetchState = async () => {
+    const fetchHealth = async () => {
       try {
-        const [h, m] = await Promise.all([getHealth(), fetchMode()]);
+        const h = await getHealth();
         if (!active) return;
         setContractAddress(h.contractAddress ?? null);
         setMockModeState(!!h.mockMode);
         setCompiledContractPresent(!!h.compiledContractPresent);
         setContractConnected(!!h.contractConnected);
-        setAppModeState((m.mode as AppMode) || 'demo');
-        setMissingEnvVars(m.missingEnvVars ?? []);
       } catch (e) {
-        // ignore — endpoints might be unreachable during dev
+        // ignore — health endpoint might be unreachable during dev
       }
     };
-    fetchState();
+    fetchHealth();
     return () => { active = false; };
   }, []);
 
-  // When running with a real wallet, monitor wallet connection state
+  // When running with a real wallet, monitor wallet connection state and handle mid-flow disconnects
   useEffect(() => {
     if (demoMode) return;
     let active = true;
@@ -134,6 +125,7 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     };
     const id = setInterval(poll, 5000);
+    // run once immediately
     poll();
     return () => { active = false; clearInterval(id); };
   }, [demoMode]);
@@ -145,13 +137,10 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
     error,
     connectWallet,
     isDemoMode: demoMode,
-    appMode,
-    setAppMode,
     contractAddress,
     mockMode: mockModeState,
     compiledContractPresent,
     contractConnected,
-    missingEnvVars,
   };
 
   return (

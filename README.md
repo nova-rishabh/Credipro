@@ -1,177 +1,288 @@
 # Credipro: Privacy-Preserving Decentralized Lending on Midnight Network
 
-**Zero-knowledge undercollateralized lending with selective identity disclosure upon default — built on Midnight's Kachina protocol.**
+![Midnight Network](https://img.shields.io/badge/Built%20on-Midnight%20Network-blue)
+![Language](https://img.shields.io/badge/Language-Compact-purple)
+![Status](https://img.shields.io/badge/Status-MVP-yellow)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-[![Built on Midnight](https://img.shields.io/badge/Built%20on-Midnight%20Network-6B3FA0?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkwyIDd2MTBsMTAgNSAxMC01VjdsLTEwLTV6IiBmaWxsPSIjNkIzRkEwIi8+PC9zdmc+)](https://midnight.network)
-[![Language](https://img.shields.io/badge/Language-Compact-purple)](https://docs.midnight.network/develop/reference/compact/lang-ref)
-[![Tests](https://img.shields.io/badge/Tests-54%20passing-brightgreen)](https://github.com/nova-rishabh/Credipro)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+## Overview
 
----
+**Credipro** is a decentralized lending protocol that solves the "Sybil default paradox" in Web3 uncollateralized lending. It connects institutional underwriters with retail borrowers through a **privacy-preserving, zero-knowledge proof-based underwriting model** built on Midnight Network's Kachina protocol.
 
-## The Problem
+### The Problem
 
-Uncollateralized lending in Web3 suffers from the **Sybil default paradox**: since on-chain identities are pseudonymous, a malicious borrower can create multiple wallets, take undercollateralized loans against each, default on all of them, and repeat — with zero real-world accountability. Overcollateralized lending (e.g., Aave, Compound) avoids this but locks up >150% of the loan value in collateral, which is capital-inefficient for creditworthy borrowers.
+Traditional Web3 lending protocols face a critical vulnerability: malicious actors can:
+1. Generate multiple anonymous identities (DIDs)
+2. Obtain undercollateralized loans for each identity
+3. Default without real-world consequences
+4. Repeat the attack infinitely, bankrupting the protocol
 
-## The Solution: Credipro
+Credipro solves this by **binding cryptographic proofs of real-world identity to loans**, enabling selective identity reveal only to affected underwriters upon default—backed by legal enforcement through an off-chain Master Loan Agreement (MLA).
 
-Credipro binds cryptographic proofs of real-world identity to loans via **Midnight's Kachina protocol**, enabling:
+### The Solution
 
-- **ZK-proof of creditworthiness** — borrowers prove their credit score meets the pool's threshold without revealing the actual score
-- **Identity commitment with selective reveal** — a hash of the borrower's identity is committed on-chain; the raw identity remains off-chain and encrypted
-- **2-of-3 oracle slashing mechanism** — upon verified default, the oracle committee decrypts the identity and reveals it **exclusively to the affected underwriter** for legal recourse via a signed Master Loan Agreement (MLA)
+Credipro uses **three core innovations**:
 
----
+1. **Zero-Knowledge Proof of Creditworthiness**
+   - Borrowers prove their FICO score meets minimum thresholds **without revealing the actual score**
+   - Powered by zkTLS oracle integration (or mock for MVP)
+   - Generates zk-SNARKs using BLS12-381 elliptic curves
 
-## Architecture
+2. **Cryptographic Identity Binding**
+   - User identity is hashed and committed on-chain
+   - Actual name, ID, and biometrics remain strictly private (off-chain only)
+   - Prevents Sybil attacks through unique identity commitment per loan
 
-### Three-Context Kachina Partition
-
-```
-LEDGER CONTEXT (Public On-Chain)
-├── liquidityPools: Map<Bytes32, Uint64>           # Pool TVL
-├── publicRiskParameters: Map<Bytes32, PublicRiskParam>  # Min credit score, max LTV
-├── encryptedIdentityCommitments: Map<Bytes32, LoanIdentityRecord>  # Loan records
-└── oracleCommitteeSignatures: Map<Bytes32, Uint<3>>  # Default votes
-
-WITNESS CONTEXT (Private Off-Chain)
-├── mock_zkTLS_CreditScore() → Uint<850>           # FICO score (zkTLS in prod)
-├── read_Identity_NFC() → Opaque<Uint8Array>       # Encrypted passport
-├── compute_identity_hash() → Bytes32              # Local hash derivation
-├── check_default_deadline_exceeded() → Boolean     # Past-due check
-└── verify_mla_signature() → Boolean               # MLA signature verification
-
-CIRCUIT CONTEXT (ZK Prover)
-├── requestLoan(loanAmount, poolAddress, defaultTermDays) → Bytes32
-├── triggerSlashing(loanId) → []
-└── verify_master_loan_agreement(borrowerPK, mlHash, signature) → []
-```
-
-### Core Circuits
-
-**`requestLoan`** — Underwriting circuit. The borrower generates a ZK proof that their credit score >= `minCreditScore` and loan amount <= pool TVL, without revealing the actual score or identity. A `LoanIdentityRecord` is committed to the ledger with a hash of the encrypted identity. Verifier learns: loan was approved, loan ID. Verifier does **not** learn: actual credit score, income, real identity.
-
-**`triggerSlashing`** — Default resolution circuit. Fires only when (1) the loan is past due and (2) ≥2 of 3 oracle committee members have voted to confirm the default. Marks the loan `isDefaulted = true` on-chain and triggers off-chain decryption of the borrower's identity for the underwriter.
+3. **Selective Identity Reveal with Oracle Consensus**
+   - Upon default, a 2-of-3 trusted oracle committee votes
+   - Only when consensus (≥2 of 3) is reached does the identity decrypt
+   - Identity revealed **exclusively to the affected underwriter** for legal recourse
+   - Backed by signed Master Loan Agreement defining jurisdiction and enforcement terms
 
 ---
 
-## Tech Stack
+## Phase 3 Hardening & Production Infrastructure (May 16, 2026 Update)
 
-| Layer | Technology |
-|-------|-----------|
-| Smart Contracts | **Compact** (Midnight's ZK language, `pragma >= 0.16 && <= 0.23`) |
-| ZK Runtime | **@midnight-ntwrk/compact-runtime**, **@midnight-ntwrk/midnight-js-contracts** |
-| Hashing | **poseidon-goldilocks** (`hashNoPad`) — Plonky2-compatible for circuit alignment |
-| Backend | **Express** (TypeScript) with JWT auth |
-| Database | **SQLite** (`credipro.sqlite`), **better-sqlite3** |
-| Frontend | **React 18** (CRA + `react-app-rewired` for polyfills) |
-| Wallet | **Lace Wallet** (Midnight testnet) |
-| Logging | **Winston** (structured, file + console) |
-| Container | **Docker Compose** (backend + frontend) |
-| Testing | **Jest** + **Supertest** (54 tests, all passing) |
+To transition Credipro from a hackathon proof-of-concept to a secure, auditable, production-ready protocol, we have completed a comprehensive architectural hardening sprint addressing key technical debt and security vectors:
+
+1. **Persistent SQLite Storage (`credipro.sqlite`)**
+   - Eliminated volatile in-memory `Map` data structures across the backend.
+   - Initialized a robust SQLite database layer (`backend/src/db.ts`) with dedicated relational schemas for `borrowers`, `identities`, and `oracle_votes`.
+   - Enabled durable state persistence across server restarts and concurrent client requests.
+
+2. **ZK-Friendly Cryptography (`poseidon-goldilocks`)**
+   - Deprecated vulnerable Node.js `crypto.createHash('sha256')` mock implementations.
+   - Integrated Plonky2-compatible `poseidon-goldilocks` hashing (`hashNoPad`) across the credit bureau, identity provider, prover witness context, and smart contract client layers.
+   - Aligned off-chain hash generation with the exact cryptographic arithmetic required by Midnight ZK circuits.
+
+3. **Structured Observability (`winston`)**
+   - Replaced all legacy `console.log`, `console.warn`, and `console.error` statements with an enterprise-grade Winston logging pipeline (`backend/src/logger.ts`).
+   - Configured custom formatting with timestamped console transports and dedicated file logs (`logs/error.log`, `logs/combined.log`) for complete auditability.
+
+4. **Strict JWT Authentication & Zero-Bypass Security**
+   - Removed the insecure `DISABLE_AUTH` developer bypass flag.
+   - Enforced strict JWT verification middleware (`backend/src/server.ts`) across all protected API routes.
+   - Implemented a dedicated `/api/auth/token` authentication endpoint issuing cryptographically signed JSON Web Tokens (`JWT_SECRET`) for authorized borrower sessions.
+
+5. **Fully Asynchronous Service Architecture**
+   - Upgraded all oracle, bureau, and committee service methods (`MockOracleService`, `MockCreditBureau`, `MockIdentityProvider`) to fully asynchronous `async/await` signatures to support real database I/O and future zkTLS network calls.
 
 ---
 
-## Prerequisites
+## Quick Start
 
-- **Node.js** ≥ 18.x
-- **npm** ≥ 9.x
-- **Docker** (optional — for containerized deployment)
-- **Lace Wallet** browser extension ([Chrome Web Store](https://chromewebstore.google.com)) — required for production mode
-- **Compact CLI** (optional — for compiling contracts locally; pre-compiled artifacts included)
+### Prerequisites
 
----
+- Node.js 18+ (for TypeScript SDK)
+- Midnight Network testnet wallet (e.g., Lace Wallet)
+- Compact language compiler (v0.16–v0.21)
+- `midnight-js` SDK (latest version)
 
-## Quick Start (Local Development)
+### Installation
 
 ```bash
-# 1. Clone
+# Clone the repository
 git clone https://github.com/nova-rishabh/Credipro.git
 cd Credipro
 
-# 2. Install all dependencies (workspaces: backend + frontend)
+# Install all workspace dependencies (backend + frontend)
 npm install
 
-# 3. Create .env from template
+# Copy environment template and set JWT_SECRET
 cp .env.example .env
-# Edit .env: set JWT_SECRET and CREDIPRO_ENCRYPTION_KEY (or leave defaults for demo)
 
-# 4. Compile Compact contract (or use pre-compiled artifacts)
+# Compile Compact smart contract & backend
 npm run compile:contract
-
-# 5. Build the backend
 npm run build
 ```
 
-### Run (Two Terminals)
+### Running the Application
 
+**Option A — Local development (two terminals)**
+
+**Terminal 1: Backend API** (nodemon — recompiles & restarts on `backend/src` changes, port 3001)
 ```bash
-# Terminal 1: Backend (port 3001)
 npm run start:backend
+```
 
-# Terminal 2: Frontend (port 3000)
+**Terminal 2: React frontend** (CRA dev server on port 3000)
+```bash
 npm run start:frontend
 ```
 
-### Or with Docker Compose
-
+**Option B — Docker Compose** (frontend on :3000, backend API on :3001)
 ```bash
 docker compose up --build
 # Open http://localhost:3000
 ```
 
----
+*(Note: The frontend uses `react-app-rewired` to polyfill Node.js core modules like `crypto` required by the Midnight SDK in the browser).*
 
-## Demo vs Production Mode
+### Project layout
 
-The app includes a **runtime toggle** in the header — no env var restarts needed.
+```
+Credipro/
+├── backend/
+│   └── src/
+│       ├── config/       # Client singleton & env
+│       ├── lib/          # logger, db
+│       ├── middleware/   # JWT auth
+│       ├── routes/       # API routes
+│       ├── services/     # contract, oracle, prover
+│       ├── types/
+│       ├── app.ts
+│       └── server.ts
+├── frontend/             # React SPA (port 3000)
+├── contracts/
+└── docker-compose.yml
+```
 
-| Mode | Wallet | Circuits | Env Vars Required |
-|------|--------|----------|-------------------|
-| **Demo** (default) | Mock wallet auto-connects | Mock circuit (Poseidon hash proofs) | None |
-| **Production** | Lace Wallet | On-chain / compiled contract via Midnight SDK | `JWT_SECRET`, `CREDIPRO_ENCRYPTION_KEY`, `MIDNIGHT_CONTRACT_ADDRESS` |
+### Midnight Lace Wallet Setup
 
-Toggle via the pill button in the header (`Demo` ↔ `Production`). Switching to Production validates that all required env vars are set before activating.
+Since Credipro is built on the Midnight Network, you **must** have the official wallet extension installed to interact with the decentralized application.
 
----
+1. Open a Chromium-based browser (Chrome, Edge, Brave).
+2. Go to the Chrome Web Store and search for **Lace Wallet** (or visit the official Midnight Network resources).
+3. Install the extension and pin it to your toolbar.
+4. Open the extension, follow the onboarding to create a new test wallet, and securely back up your seed phrase.
+5. In the Lace Wallet settings, ensure your network is set to **Midnight Testnet**.
+6. Refresh the Credipro application at `http://localhost:3000`. The "Connect Wallet" button will now successfully link your Lace Wallet to the dApp!
 
-## Running Tests
+### Example: Request a Loan
 
-```bash
-# All backend tests
-npm test
+```typescript
+import { CrediproContract } from './contracts/Credipro';
+import { Lace } from '@midnight-ntwrk/lace-sdk';
 
-# Integration tests (compiled contract required)
-npm test:integration
+// 1. Connect wallet
+const wallet = await Lace.connect();
+const borrower = wallet.getAddress();
 
-# Test coverage
-npm test:coverage
+// 2. Prepare witness data (off-chain, local)
+const creditScore = 720;  // Mock FICO score
+const passport = await readEncryptedPassport();  // Local NFC or storage
 
-# Lint
-npm run lint
+// 3. Request loan
+const loanId = await contract.requestLoan(
+  BigInt(100000),           // loanAmount (in smallest denomination)
+  underwriterAddress,       // poolAddress
+  BigInt(180)               // defaultTermDays
+);
+
+console.log(`Loan approved! ID: ${loanId}`);
 ```
 
 ---
 
-## API Endpoints
+## Architecture
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/auth/token` | No | Issue JWT (body: `{ username }`) |
-| `GET` | `/api/health` | No | Backend health, mode, contract status |
-| `GET` | `/api/mode` | No | Current app mode (demo/production) |
-| `PUT` | `/api/mode` | No | Switch mode (body: `{ mode }`) |
-| `POST` | `/api/loan/request` | JWT | Request a loan |
-| `POST` | `/api/loan/slash` | JWT | Trigger slashing |
-| `GET` | `/api/loan/:id` | JWT | Get loan details |
-| `GET` | `/api/pool/:address` | JWT | Get pool details |
-| `POST` | `/api/oracle/vote` | JWT | Cast oracle vote |
-| `GET` | `/api/oracle/members` | JWT | List oracle committee |
-| `GET` | `/api/oracle/approvals/:loanId` | JWT | Get approval count |
-| `POST` | `/api/oracle/auto-vote/:loanId` | JWT | Demo: auto-cast 2 votes |
-| `POST` | `/api/oracle/clear/:loanId` | JWT | Demo: clear votes |
-| `GET` | `/api/oracle/revealed-identity/:loanId` | JWT | Demo: reveal identity |
-| `DELETE` | `/api/oracle/reset` | JWT | Demo: reset mock DB |
+### Three-Context Partition (Midnight Kachina Protocol)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Credipro Smart Contract Architecture                     │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  LEDGER CONTEXT (Public, On-Chain)                      │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ • liquidityPools: Pool TVL tracking               │  │
+│  │ • publicRiskParameters: Min credit scores, LTV    │  │
+│  │ • encryptedIdentityCommitments: Loan records     │  │
+│  │ • oracleCommitteeSignatures: Default votes       │  │
+│  └───────────────────────────────────────────────────┘  │
+│                           ↑                              │
+│                        disclose()                        │
+│                           ↓                              │
+│  WITNESS CONTEXT (Private, Off-Chain)                   │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ • mock_zkTLS_CreditScore(): Borrower's FICO      │  │
+│  │ • read_Identity_NFC(): Encrypted passport        │  │
+│  │ • compute_identity_hash(): Local hash derivation │  │
+│  │ • check_default_deadline_exceeded(): Time check  │  │
+│  └───────────────────────────────────────────────────┘  │
+│                           ↑                              │
+│                    Assertions & Proofs                   │
+│                           ↓                              │
+│  CIRCUIT CONTEXT (ZK Prover)                           │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ • requestLoan(): Underwriting circuit             │  │
+│  │ • triggerSlashing(): Default resolution circuit  │  │
+│  │ • verify_master_loan_agreement(): MLA validation │  │
+│  └───────────────────────────────────────────────────┘  │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### requestLoan() Circuit
+
+**Purpose:** Generate ZK proof that borrower meets lender's risk parameters.
+
+```
+INPUT: loanAmount, poolAddress, defaultTermDays
+OUTPUT: loanId (Bytes<32>)
+
+LOGIC:
+  1. Retrieve witness data (creditScore, identity, lender)
+  2. Fetch public risk parameters from ledger
+  3. Assert: disclose(creditScore >= minCreditScore)
+  4. Assert: disclose(loanAmount <= poolTVL)
+  5. Compute identity commitment hash
+  6. Create loan record on ledger
+  7. Return loan ID
+  
+ZERO-KNOWLEDGE:
+  ✓ Verifier learns: Loan was approved
+  ✗ Verifier does NOT learn: Actual credit score, income, real identity
+```
+
+### triggerSlashing() Circuit
+
+**Purpose:** Prove default conditions met, trigger identity reveal.
+
+```
+INPUT: loanId
+OUTPUT: (none, updates ledger state)
+
+LOGIC:
+  1. Retrieve loan record
+  2. Assert: disclose(!isDefaulted)  [Not already defaulted]
+  3. Assert: disclose(deadlineExceeded)  [Past due]
+  4. Assert: disclose(oracleApprovals >= 2)  [Consensus reached]
+  5. Mark isDefaulted = true
+  6. Trigger off-chain oracle decryption
+  
+ZERO-KNOWLEDGE:
+  ✓ Circuit proves conditions are met
+  ✗ Circuit does NOT decrypt identity (off-chain oracle action)
+```
+
+---
+
+## Core Features
+
+### ✅ Privacy-Preserving Underwriting
+
+- **No raw credit data on-chain:** Only ZK proofs of creditworthiness
+- **Identity hidden by default:** Only hash commitment on ledger
+- **Witness data stays local:** Never exposed without explicit `disclose()`
+
+### ✅ Sybil Attack Prevention
+
+- **Cryptographic identity binding:** Each loan tied to unique identity hash
+- **One identity = one loan per underwriter:** Prevents duplicate loans
+- **Real-world enforcement:** MLA + selective reveal creates legal deterrent
+
+### ✅ Institutional-Grade Privacy
+
+- **Rational privacy framework:** Data shielded by default, selectively disclosed for compliance
+- **Underwriter anonymity:** Risk parameters are public; portfolio composition stays private
+- **Selective reveal only to affected lender:** Other participants remain blind
+
+### ✅ Hackathon MVP Scope
+
+- **Mock zkTLS oracle:** Simulates credit score verification (replaceable with real zkTLS)
+- **2-of-3 oracle committee:** Simplified threshold consensus (scalable to N-party MPC in Phase 2)
+- **Master Loan Agreement:** Off-chain legal enforcement for real-world collections
 
 ---
 
@@ -179,79 +290,313 @@ npm run lint
 
 ```
 Credipro/
-├── backend/
-│   ├── contracts/
-│   │   ├── Credipro.compact              # Compact smart contract source
-│   │   ├── contract/index.js             # Compiled contract (ESM)
-│   │   ├── keys/                         # Prover & verifier keys
-│   │   └── zkir/                         # ZK intermediate representation
-│   ├── dist/contracts/                   # Compiled artifacts (CI)
-│   ├── src/
-│   │   ├── config/                       # env.ts, client.ts
-│   │   ├── lib/                          # logger.ts, db.ts, appMode.ts
-│   │   ├── middleware/                   # JWT auth middleware
-│   │   ├── routes/                       # Express route handlers
-│   │   ├── services/                     # contract.ts, prover.ts, oracle.ts, midnightClient.ts
-│   │   ├── types/                        # TypeScript type definitions
-│   │   └── __tests__/                    # Jest test suite (54 tests)
-│   ├── scripts/                          # compile-contract.js, deploy.ts
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/                   # React components
-│   │   ├── context/                      # CrediproContext, ToastContext
-│   │   ├── hooks/                        # useNotify
-│   │   └── api/                          # crediproApi.ts (typed API client)
-│   └── Dockerfile
-├── docker-compose.yml
-├── CLAUDE.md
+├── backend/                          # Express API + Midnight SDK (port 3001)
+├── frontend/                         # React SPA (port 3000)
+├── contracts/
+│   └── Credipro.compact              # Smart contract (MVP-complete)
+├── docs/                             # Product & technical documentation
+├── docker-compose.yml                # Backend + frontend stack
 └── README.md
 ```
 
 ---
 
-## Hackathon MVP Scope
+## Development Roadmap
 
-The following are **mocked** for the MVP and marked for production replacement:
+### Phase 1: MVP (Hackathon, May 2026)
 
-| Mocked Component | Production Replacement |
-|----------------|----------------------|
-| **zkTLS oracle** (`mock_zkTLS_CreditScore`) | Real zkTLS via zkPass / Reclaim Protocol |
-| **2-of-3 decryption** (plaintext oracle voting) | BLS threshold signature with N-party MPC |
-| **Credit data in SQLite** | Real-time FICO / credit bureau API integration |
-| **Passport identity** (dummy encrypted payload) | ePassport NFC chip reading + ICAO 9303 |
-| **Poseidon mock proofs** (`generateMockProof`) | Actual `@midnight-ntwrk/compact-runtime` circuit execution |
+- [x] Compact smart contract (requestLoan + triggerSlashing circuits)
+- [x] Contract specification & documentation
+- [x] TypeScript witness implementations
+- [x] React frontend
+- [x] Lace Wallet integration
+- [x] Mock zkTLS oracle
+- [x] End-to-end testing
 
-### What Is Real
+### Phase 2: Production Features (Q3 2026)
 
-- ✅ Compact smart contract (`Credipro.compact`) — syntactically valid, structurally complete
-- ✅ Compiled contract runtime integration (`contract/index.js`)
-- ✅ Witness function layer with synchronous compact-runtime wrappers
-- ✅ Full authentication pipeline (JWT issue, verify, expiry)
-- ✅ Persistent SQLite storage (borrowers, identities, oracle votes)
-- ✅ Winston structured logging
-- ✅ BigInt/Uint8Array JSON serialization
-- ✅ AbortController timeouts on frontend API calls
-- ✅ Runtime demo/production mode toggle (no restart needed)
-- ✅ Step-based ZK pipeline UI (witness generation → proof → broadcast → settlement)
-- ✅ Oracle voting panel with consensus progress visualization
-- ✅ 54 passing tests (unit + integration + API)
+- [ ] Real zkTLS oracle integration (zkPass, Reclaim Protocol)
+- [ ] True 2-of-3 threshold decryption (BLS signatures)
+- [ ] Loan repayment logic
+- [ ] Interest accrual & fees
+- [ ] MerkleTree for identity proofs
+- [ ] Zswap integration for fund transfers
+
+### Phase 3: Advanced Features (Q4 2026+)
+
+- [ ] Full N-party MPC threshold decryption
+- [ ] Secondary loan market & trading
+- [ ] Cross-chain bridging (Ethereum, Polygon)
+- [ ] Loan securitization
+- [ ] DAO governance for oracle committee selection
 
 ---
 
-## Deploying to Midnight Testnet
+## Security Considerations
 
-See [`backend/scripts/deploy.ts`](./backend/scripts/deploy.ts) for a dry-validated deploy script.
+### Sybil Attack Prevention
+
+**Threat:** Attacker generates multiple DIDs, gets loans, defaults on all.
+
+**Mitigation:**
+- Each loan is cryptographically bound to a unique identity hash
+- Upon default, identity can be revealed (with oracle consensus)
+- Master Loan Agreement provides legal jurisdiction for real-world enforcement
+- Attacker's real identity becomes discoverable, creating deterrent
+
+### Oracle Centralization Risk
+
+**Threat:** 2-of-3 oracle committee could be compromised or collude.
+
+**Mitigation:**
+- Circuit **proves conditions are met** (deadline + approvals) — oracle cannot forge proofs
+- Identity reveal happens **off-chain** — oracle cannot leak to other participants
+- Master Loan Agreement **provides legal recourse** against rogue oracles
+- Phase 2: True N-party MPC threshold decryption eliminates single-point-of-failure
+
+### Privacy Preservation
+
+**Threat:** Underwriter's risk parameters leak to competitors.
+
+**Mitigation:**
+- `publicRiskParameters` are **intentionally public** (set by underwriter)
+- Underwriter controls what parameters are exposed
+- Portfolio composition and proprietary data **never** on-chain
+
+---
+
+## Integration Guide
+
+### For Borrowers
+
+1. **Wallet Setup & Onboarding**
+   - Install the **Lace Wallet** extension from the Chrome Web Store.
+   - Create a test wallet and switch to the **Midnight Testnet**.
+   - Navigate to `http://localhost:3000` and click **Connect Wallet**.
+   - Sign the Master Loan Agreement (off-chain, legal contract).
+   - Store encrypted identity locally (NFC passport chip or secure storage).
+
+2. **Loan Request**
+   - Mock-authenticate with credit bureau (zkTLS or mock oracle)
+   - Prover generates ZK proof of creditworthiness locally
+   - Submit proof to contract via `requestLoan()` circuit
+   - Receive loan ID upon approval
+
+3. **Repayment**
+   - Monitor loan term
+   - Repay via Zswap (private token transfer)
+   - Upon full repayment, loan closes and identity commitment removed
+
+### For Underwriters
+
+1. **Pool Setup**
+   - Deploy liquidity pool (set TVL)
+   - Define public risk parameters (min credit score, max LTV, min income)
+
+2. **Loan Approval**
+   - Monitor incoming loan requests
+   - Disburse funds via Zswap upon circuit approval
+
+3. **Default Resolution**
+   - Vote on default resolutions (2-of-3 oracle committee)
+   - Upon consensus, receive decrypted identity (via off-chain oracle)
+   - Verify Master Loan Agreement and pursue legal collections
+
+### For Oracle Committee
+
+1. **Default Voting**
+   - Monitor flagged loans (past deadline)
+   - Vote to approve or reject default resolution
+
+2. **Identity Decryption**
+   - Upon 2-of-3 consensus, perform decryption
+   - Send encrypted identity to affected underwriter
+
+3. **Audit Trail**
+   - Maintain logs of all votes and decryptions
+   - Support legal proceedings if needed
+
+---
+
+## Testing
+
+### Run Tests
 
 ```bash
-$env:MIDNIGHT_RPC='https://your-testnet-rpc'
-$env:MIDNIGHT_WALLET_SEED='your seed phrase'
-$env:RUN_DEPLOY='true'
-npx ts-node --esm backend/scripts/deploy.ts
+# Unit tests for smart contract
+npm test
+
+# Integration tests (end-to-end flow)
+npm test:integration
+
+# Compile & validate Compact syntax
+npm run compile:contract
+
+# Generate test coverage
+npm test:coverage
 ```
+
+### Example Test Cases
+
+```typescript
+// ✓ requestLoan succeeds when credit score meets threshold
+// ✓ requestLoan fails when credit score below threshold
+// ✓ requestLoan creates identity commitment
+// ✓ triggerSlashing succeeds when deadline exceeded + oracle consensus
+// ✓ triggerSlashing fails if deadline not exceeded
+// ✓ triggerSlashing fails if oracle consensus not reached
+// ✓ verify_master_loan_agreement succeeds with valid signature
+// ✓ Identity remains private until default resolution
+```
+
+---
+
+## Contributing
+
+1. **Fork the repository**
+   ```bash
+   git fork https://github.com/nova-rishabh/Credipro.git
+   ```
+
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make changes** and ensure tests pass
+   ```bash
+   npm test
+
+   ## Deployment & Running (Testnet)
+
+   This project supports local development (mock mode), compiled local contract execution, and on-chain deployments to Midnight testnet. The `backend/scripts/deploy.ts` script (if present) will deploy the compiled contract artifact and return the deployed contract address.
+
+   Environment variables (important)
+   - `MIDNIGHT_RPC` — Midnight testnet RPC URL (required for on-chain mode)
+   - `MIDNIGHT_WALLET_SEED` or `MIDNIGHT_PRIVATE_KEY` — Deployer credentials (provide locally; do NOT commit)
+   - `MIDNIGHT_CONTRACT_ADDRESS` — Address written after successful deploy (optional)
+   - `USE_COMPILED_CONTRACT` — `true` to run using the local compiled contract binding
+   - `USE_ONCHAIN_CONTRACT` — `true` to use the on-chain contract via Midnight SDK
+   - `WRITE_ENV_ON_SUCCESS` — `true` to append `MIDNIGHT_CONTRACT_ADDRESS` to `.env` after deploy
+
+   Run the deploy script (PowerShell example)
+
+   ```powershell
+   $env:MIDNIGHT_RPC='https://your-midnight-testnet-rpc'
+   $env:MIDNIGHT_WALLET_SEED='your twelve/24-word seed here'
+   $env:WRITE_ENV_ON_SUCCESS='true'
+   npx ts-node --esm backend/scripts/deploy.ts
+   ```
+
+   If you prefer a private key:
+
+   ```powershell
+   $env:MIDNIGHT_RPC='https://your-midnight-testnet-rpc'
+   $env:MIDNIGHT_PRIVATE_KEY='0xYOUR_PRIVATE_KEY'
+   $env:WRITE_ENV_ON_SUCCESS='true'
+   npx ts-node --esm backend/scripts/deploy.ts
+   ```
+
+   Notes
+   - The deploy script is intentionally manual: do not paste secrets in public places. If you do not want the script to write `.env`, omit `WRITE_ENV_ON_SUCCESS` and copy the printed contract address into your `.env` manually.
+   - You must fund the deployer address with testnet tokens (faucet) before running the script.
+
+   Frontend live mode
+   - The frontend runs in demo mode by default (no wallet required). To force real wallet mode and prevent the demo auto-connect, open the app with `?live` in the URL (e.g., `http://localhost:3000?live`).
+   - The frontend reads `/api/health` on load to discover `MIDNIGHT_CONTRACT_ADDRESS` and whether the backend is operating in mock or on-chain mode.
+
+   ```
+
+4. **Submit a pull request**
+   - Describe your changes clearly
+   - Reference any related issues
+   - Ensure CI checks pass
+
+### Code Style
+
+- **Compact:** Follow the official Compact style guide
+  - Use `disclose()` explicitly for all sensitive data
+  - No implicit disclosures
+  - Proper pragma syntax: `pragma language_version >= 0.16 && <= 0.21;`
+
+- **TypeScript:** ESLint + Prettier configuration
+  ```bash
+  npm run lint
+  npm run format
+  ```
+
+---
+
+## Documentation
+
+- **[SMART_CONTRACT_SPEC.md](./docs/SMART_CONTRACT_SPEC.md)** — Complete contract specification (500+ lines)
+  - Ledger/Witness/Circuit context details
+  - Data type definitions & invariants
+  - Security analysis & threat models
+  - Integration guide for SDK
+
+- **[MVP_DELIVERABLES.md](./docs/MVP_DELIVERABLES.md)** — Integration checklist (300+ lines)
+  - TypeScript witness stubs
+  - Circuit call examples
+  - Next steps & priorities
+  - Known limitations
+
+- **[PRD.md](./docs/PRD.md)** — Product Requirements Document
+  - Problem statement & market opportunity
+  - Core mechanics & user flows
+  - Feature scope (MVP vs. Phase 2+)
+
+- **[TRD.md](./docs/TRD.md)** — Technical Requirements Document
+  - Technology stack (Compact, Midnight, Kachina)
+  - Architecture constraints
+  - Performance targets
 
 ---
 
 ## License
 
-MIT
+MIT License — See [LICENSE](./LICENSE) file for details.
+
+---
+
+## Support
+
+### Get Help
+
+- **Documentation:** See `/Docs` folder and `.md` files
+- **Issues:** [GitHub Issues](https://github.com/nova-rishabh/Credipro/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/nova-rishabh/Credipro/discussions)
+
+### Midnight Network Resources
+
+- **Official Docs:** https://docs.midnight.network
+- **Compact Reference:** https://docs.midnight.network/develop/reference/compact/lang-ref
+- **SDK:** https://www.npmjs.com/package/@midnight-ntwrk/compact-js
+
+---
+
+## Acknowledgments
+
+Built with ❤️ for the Midnight Network hackathon (May 2026).
+
+Special thanks to:
+- **Midnight Team** for the Kachina protocol & Compact language
+- **Lace Wallet** for seamless integration
+- **zkTLS/zkPass** community for privacy-preserving oracle designs
+
+---
+
+## Roadmap Highlights
+
+| Milestone | Date | Focus |
+|-----------|------|-------|
+| **MVP Launch** | May 2026 | Hackathon demo (requestLoan + triggerSlashing) |
+| **Phase 2** | Q3 2026 | Real zkTLS + True MPC threshold decryption |
+| **Phase 3** | Q4 2026 | Cross-chain bridging + Secondary market |
+| **Phase 4** | 2027 | Mainnet launch + DAO governance |
+
+---
+
+**Status:** ✅ MVP Complete — Ready for Development
+
+**Last Updated:** May 16, 2026

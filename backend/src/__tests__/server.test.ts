@@ -8,6 +8,7 @@ import request from 'supertest';
 // Set required env vars before importing the app
 process.env.JWT_SECRET = 'jest-test-secret-for-api';
 process.env.CREDIPRO_ENCRYPTION_KEY = 'jest-test-encryption-key-32chars!!';
+process.env.MOCK_ORACLE_MODE = 'true';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import app from '../app';
