@@ -83,11 +83,14 @@ const DefaultResolution: React.FC = () => {
       try {
         setMembersLoading(true);
         const response = await getOracleMembers();
-        if (!cancelled) {
+        if (!cancelled && response && Array.isArray(response.members)) {
           setMembers(response.members);
+        } else if (!cancelled) {
+          setMembers([]);
         }
       } catch (error) {
         if (!cancelled) {
+          setMembers([]);
           toast({
             title: 'Error fetching oracle members',
             description: error instanceof Error ? error.message : 'Unknown error',
