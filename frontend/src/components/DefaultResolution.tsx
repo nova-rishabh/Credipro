@@ -19,7 +19,7 @@ import {
   Spinner,
   Center,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningIcon, TimeIcon, InfoIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons';
 import {
   oracleVote,
   getOracleMembers,
