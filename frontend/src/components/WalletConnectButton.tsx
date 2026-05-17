@@ -1,15 +1,22 @@
 import React from 'react';
-import { Button, Text, HStack } from '@chakra-ui/react';
+import { Button, Text, HStack, Badge } from '@chakra-ui/react';
 import { useCredipro } from '../context/CrediproContext';
 
 export const WalletConnectButton: React.FC = () => {
-  const { isConnected, isConnecting, address, connectWallet, error } = useCredipro();
+  const { isConnected, isConnecting, address, connectWallet, error, isDemoMode } = useCredipro();
 
   if (isConnected && address) {
     return (
-      <HStack>
-        <Text fontSize="sm" fontWeight="medium">Connected:</Text>
-        <Text fontSize="sm" fontFamily="monospace" bg="gray.100" p={1} rounded="md">
+      <HStack spacing={3}>
+        {isDemoMode && (
+          <Badge colorScheme="purple" variant="solid" px={2} py={0.5} borderRadius="full" fontSize="xs">
+            DEMO
+          </Badge>
+        )}
+        <Text fontSize="sm" fontWeight="medium" color="gray.300">
+          Connected:
+        </Text>
+        <Text fontSize="sm" fontFamily="monospace" bg="rgba(255,255,255,0.1)" px={2} py={1} borderRadius="md">
           {address.slice(0, 6)}...{address.slice(-4)}
         </Text>
       </HStack>
@@ -17,16 +24,23 @@ export const WalletConnectButton: React.FC = () => {
   }
 
   return (
-    <HStack>
-      {error && <Text color="red.500" fontSize="sm">{error}</Text>}
-      <Button
-        colorScheme="blue"
-        onClick={connectWallet}
-        isLoading={isConnecting}
-        loadingText="Connecting..."
-      >
-        Connect Lace Wallet
-      </Button>
+    <HStack spacing={3}>
+      {isDemoMode && (
+        <Badge colorScheme="purple" variant="solid" px={2} py={0.5} borderRadius="full" fontSize="xs">
+          DEMO
+        </Badge>
+      )}
+      {error && <Text color="red.400" fontSize="sm">{error}</Text>}
+      {!isConnecting && (
+        <Button
+          colorScheme="blue"
+          onClick={connectWallet}
+          isLoading={isConnecting}
+          loadingText="Connecting..."
+        >
+          {isDemoMode ? 'Enter Demo Mode' : 'Connect Lace Wallet'}
+        </Button>
+      )}
     </HStack>
   );
 };
