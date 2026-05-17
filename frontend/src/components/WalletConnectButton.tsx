@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Text, HStack, Badge } from '@chakra-ui/react';
+import { Button, Text, HStack, Badge, Spinner } from '@chakra-ui/react';
 import { useCredipro } from '../context/CrediproContext';
 
 export const WalletConnectButton: React.FC = () => {
@@ -31,13 +31,13 @@ export const WalletConnectButton: React.FC = () => {
         </Badge>
       )}
       {error && <Text color="red.400" fontSize="sm">{error}</Text>}
-      {!isConnecting && (
-        <Button
-          colorScheme="blue"
-          onClick={connectWallet}
-          isLoading={isConnecting}
-          loadingText="Connecting..."
-        >
+      {isConnecting ? (
+        <HStack spacing={2}>
+          <Spinner size="sm" color="purple.300" />
+          <Text color="gray.300" fontSize="sm">Connecting...</Text>
+        </HStack>
+      ) : (
+        <Button colorScheme="blue" onClick={connectWallet}>
           {isDemoMode ? 'Enter Demo Mode' : 'Connect Lace Wallet'}
         </Button>
       )}

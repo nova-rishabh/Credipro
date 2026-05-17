@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
         boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
         textAlign="center"
       >
-        <Heading>Dashboard</Heading>
+        <Heading color="white">Dashboard</Heading>
       </Box>
       <LoanDashboard />
       <DefaultResolution />

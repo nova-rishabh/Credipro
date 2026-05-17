@@ -1,7 +1,13 @@
 node_modules/
 dist/
+backend/dist/
 build/
+frontend/build/
 coverage/
+backend/coverage/
+logs/
+backend/logs/
+.tmp/
 *.log
 .env
 .DS_Store

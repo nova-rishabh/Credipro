@@ -16,7 +16,6 @@ import {
   Divider,
   Tag,
   TagLabel,
-  TagLeftIcon,
   Spinner,
   Center,
 } from '@chakra-ui/react';
@@ -269,7 +268,7 @@ const DefaultResolution: React.FC = () => {
     >
       <VStack spacing={6} align="stretch">
         {/* ---------- Title ---------- */}
-        <Heading size="lg" textAlign="center">
+        <Heading size="lg" textAlign="center" color="white">
           Oracle Voting Panel
         </Heading>
 
@@ -359,10 +358,9 @@ const DefaultResolution: React.FC = () => {
                           colorScheme={hasVoted ? 'green' : 'gray'}
                           borderRadius="full"
                         >
-                          <TagLeftIcon
-                            as={hasVoted ? CheckCircleIcon : TimeIcon}
-                          />
-                          <TagLabel>{hasVoted ? 'Voted' : 'Pending'}</TagLabel>
+                          <TagLabel>
+                            {hasVoted ? '✓ Voted' : '○ Pending'}
+                          </TagLabel>
                         </Tag>
                       </HStack>
 

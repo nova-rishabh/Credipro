@@ -47,7 +47,7 @@ To transition Credipro from a hackathon proof-of-concept to a secure, auditable,
 
 1. **Persistent SQLite Storage (`credipro.sqlite`)**
    - Eliminated volatile in-memory `Map` data structures across the backend.
-   - Initialized a robust SQLite database layer (`src/db.ts`) with dedicated relational schemas for `borrowers`, `identities`, and `oracle_votes`.
+   - Initialized a robust SQLite database layer (`backend/src/db.ts`) with dedicated relational schemas for `borrowers`, `identities`, and `oracle_votes`.
    - Enabled durable state persistence across server restarts and concurrent client requests.
 
 2. **ZK-Friendly Cryptography (`poseidon-goldilocks`)**
@@ -56,12 +56,12 @@ To transition Credipro from a hackathon proof-of-concept to a secure, auditable,
    - Aligned off-chain hash generation with the exact cryptographic arithmetic required by Midnight ZK circuits.
 
 3. **Structured Observability (`winston`)**
-   - Replaced all legacy `console.log`, `console.warn`, and `console.error` statements with an enterprise-grade Winston logging pipeline (`src/logger.ts`).
+   - Replaced all legacy `console.log`, `console.warn`, and `console.error` statements with an enterprise-grade Winston logging pipeline (`backend/src/logger.ts`).
    - Configured custom formatting with timestamped console transports and dedicated file logs (`logs/error.log`, `logs/combined.log`) for complete auditability.
 
 4. **Strict JWT Authentication & Zero-Bypass Security**
    - Removed the insecure `DISABLE_AUTH` developer bypass flag.
-   - Enforced strict JWT verification middleware (`src/server.ts`) across all protected API routes.
+   - Enforced strict JWT verification middleware (`backend/src/server.ts`) across all protected API routes.
    - Implemented a dedicated `/api/auth/token` authentication endpoint issuing cryptographically signed JSON Web Tokens (`JWT_SECRET`) for authorized borrower sessions.
 
 5. **Fully Asynchronous Service Architecture**
@@ -85,38 +85,57 @@ To transition Credipro from a hackathon proof-of-concept to a secure, auditable,
 git clone https://github.com/nova-rishabh/Credipro.git
 cd Credipro
 
-# Install root dependencies (SDK & Backend)
+# Install all workspace dependencies (backend + frontend)
 npm install
 
-# Install frontend dependencies (React & Webpack polyfills)
-cd frontend
-npm install
-cd ..
+# Copy environment template and set JWT_SECRET
+cp .env.example .env
 
-# Compile Compact smart contract & SDK
+# Compile Compact smart contract & backend
 npm run compile:contract
 npm run build
 ```
 
 ### Running the Application
 
-To run the complete Credipro stack, you will need **two separate terminal windows**.
+**Option A — Local development (two terminals)**
 
-**Terminal 1: Start the Backend API**
-This runs the local API, the mock zkTLS oracle, and the Express server on port 3001.
+**Terminal 1: Backend API** (nodemon — recompiles & restarts on `backend/src` changes, port 3001)
 ```bash
-# From the root directory
 npm run start:backend
 ```
 
-**Terminal 2: Start the React Frontend**
-This runs the React UI with Chakra and the Lace Wallet integration on port 3000.
+**Terminal 2: React frontend** (CRA dev server on port 3000)
 ```bash
-# From the root directory
 npm run start:frontend
 ```
 
+**Option B — Docker Compose** (frontend on :3000, backend API on :3001)
+```bash
+docker compose up --build
+# Open http://localhost:3000
+```
+
 *(Note: The frontend uses `react-app-rewired` to polyfill Node.js core modules like `crypto` required by the Midnight SDK in the browser).*
+
+### Project layout
+
+```
+Credipro/
+├── backend/
+│   └── src/
+│       ├── config/       # Client singleton & env
+│       ├── lib/          # logger, db
+│       ├── middleware/   # JWT auth
+│       ├── routes/       # API routes
+│       ├── services/     # contract, oracle, prover
+│       ├── types/
+│       ├── app.ts
+│       └── server.ts
+├── frontend/             # React SPA (port 3000)
+├── contracts/
+└── docker-compose.yml
+```
 
 ### Midnight Lace Wallet Setup
 
@@ -271,19 +290,13 @@ ZERO-KNOWLEDGE:
 
 ```
 Credipro/
+├── backend/                          # Express API + Midnight SDK (port 3001)
+├── frontend/                         # React SPA (port 3000)
 ├── contracts/
-│   └── Credipro.compact              # Smart contract (340 lines, MVP-complete)
-├── Docs/
-│   ├── PRD.md                        # Product Requirements Document
-│   ├── TRD.md                        # Technical Requirements Document
-│   ├── Backend & Smart Contract Schem.md  # Schema reference
-│   ├── Foundational Context.md       # Problem statement & use cases
-│   └── appflow.md                    # User flow diagrams
-├── SMART_CONTRACT_SPEC.md            # Comprehensive contract specification (500+ lines)
-├── MVP_DELIVERABLES.md               # Integration checklist & next steps
-├── README.md                         # This file
-└── .vscode/
-    └── mcp.json                      # Midnight MCP configuration
+│   └── Credipro.compact              # Smart contract (MVP-complete)
+├── docs/                             # Product & technical documentation
+├── docker-compose.yml                # Backend + frontend stack
+└── README.md
 ```
 
 ---
@@ -477,24 +490,24 @@ npm test:coverage
 
 ## Documentation
 
-- **[SMART_CONTRACT_SPEC.md](./SMART_CONTRACT_SPEC.md)** — Complete contract specification (500+ lines)
+- **[SMART_CONTRACT_SPEC.md](./docs/SMART_CONTRACT_SPEC.md)** — Complete contract specification (500+ lines)
   - Ledger/Witness/Circuit context details
   - Data type definitions & invariants
   - Security analysis & threat models
   - Integration guide for SDK
 
-- **[MVP_DELIVERABLES.md](./MVP_DELIVERABLES.md)** — Integration checklist (300+ lines)
+- **[MVP_DELIVERABLES.md](./docs/MVP_DELIVERABLES.md)** — Integration checklist (300+ lines)
   - TypeScript witness stubs
   - Circuit call examples
   - Next steps & priorities
   - Known limitations
 
-- **[PRD.md](./Docs/PRD.md)** — Product Requirements Document
+- **[PRD.md](./docs/PRD.md)** — Product Requirements Document
   - Problem statement & market opportunity
   - Core mechanics & user flows
   - Feature scope (MVP vs. Phase 2+)
 
-- **[TRD.md](./Docs/TRD.md)** — Technical Requirements Document
+- **[TRD.md](./docs/TRD.md)** — Technical Requirements Document
   - Technology stack (Compact, Midnight, Kachina)
   - Architecture constraints
   - Performance targets

@@ -72,7 +72,7 @@ export const LoanDashboard: React.FC = () => {
         boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
         textAlign="center"
       >
-        <Text>Please connect your Lace wallet to request a loan.</Text>
+        <Text color="gray.200">Please connect your Lace wallet to request a loan.</Text>
       </Box>
     );
   }
@@ -87,7 +87,7 @@ export const LoanDashboard: React.FC = () => {
       boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
     >
       <VStack spacing={6} align="stretch">
-        <Heading size="md">Request Loan</Heading>
+        <Heading size="md" color="white">Request Loan</Heading>
         
         <FormControl>
           <FormLabel>Loan Amount</FormLabel>
