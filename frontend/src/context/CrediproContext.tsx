@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { getHealth } from '../api/crediproApi';
 
 interface CrediproContextState {
   isConnected: boolean;
@@ -7,6 +8,10 @@ interface CrediproContextState {
   connectWallet: () => Promise<void>;
   error: string | null;
   isDemoMode: boolean;
+  contractAddress: string | null;
+  mockMode: boolean;
+  compiledContractPresent: boolean;
+  contractConnected: boolean;
 }
 
 const CrediproContext = createContext<CrediproContextState | undefined>(undefined);
@@ -39,6 +44,10 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const demoMode = isDemoMode();
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
+  const [mockModeState, setMockModeState] = useState<boolean>(true);
+  const [compiledContractPresent, setCompiledContractPresent] = useState<boolean>(false);
+  const [contractConnected, setContractConnected] = useState<boolean>(false);
 
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
@@ -78,6 +87,25 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [demoMode, connectWallet]);
 
+  // Fetch backend health to learn runtime flags and deployed address
+  useEffect(() => {
+    let active = true;
+    const fetchHealth = async () => {
+      try {
+        const h = await getHealth();
+        if (!active) return;
+        setContractAddress(h.contractAddress ?? null);
+        setMockModeState(!!h.mockMode);
+        setCompiledContractPresent(!!h.compiledContractPresent);
+        setContractConnected(!!h.contractConnected);
+      } catch (e) {
+        // ignore — health endpoint might be unreachable during dev
+      }
+    };
+    fetchHealth();
+    return () => { active = false; };
+  }, []);
+
   const value = {
     isConnected,
     address,
@@ -85,6 +113,10 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
     error,
     connectWallet,
     isDemoMode: demoMode,
+    contractAddress,
+    mockMode: mockModeState,
+    compiledContractPresent,
+    contractConnected,
   };
 
   return (

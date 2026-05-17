@@ -10,6 +10,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { requestLoan } from '../api/crediproApi';
+import { useCredipro } from '../context/CrediproContext';
 
 const LoanRequestForm: React.FC = () => {
   const [loanAmount, setLoanAmount] = useState('');
@@ -17,12 +18,14 @@ const LoanRequestForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
+  const { contractAddress } = useCredipro();
+
   const handleRequestLoan = async () => {
     setLoading(true);
     try {
       const response = await requestLoan(
         Number(loanAmount),
-        poolAddress || '0x' + 'f'.repeat(64),
+        poolAddress || contractAddress || '0x' + 'f'.repeat(64),
         180
       );
       if (response.success) {

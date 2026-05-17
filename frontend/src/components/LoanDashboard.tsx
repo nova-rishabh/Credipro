@@ -8,7 +8,7 @@ import { useCredipro } from '../context/CrediproContext';
 import { requestLoan, getPoolDetails, PoolDetails } from '../api/crediproApi';
 
 export const LoanDashboard: React.FC = () => {
-  const { isConnected } = useCredipro();
+  const { isConnected, contractAddress } = useCredipro();
   const [loanAmount, setLoanAmount] = useState<number>(10000);
   const [termDays, setTermDays] = useState<number>(180);
   
@@ -19,7 +19,8 @@ export const LoanDashboard: React.FC = () => {
   const [isFetchingPool, setIsFetchingPool] = useState(false);
 
   const toast = useToast();
-  const poolAddress = '0x' + 'f'.repeat(64);
+  // Default pool address falls back to contractAddress when available
+  const poolAddress = contractAddress ?? ('0x' + 'f'.repeat(64));
 
   useEffect(() => {
     let active = true;
