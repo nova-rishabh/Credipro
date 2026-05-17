@@ -4,7 +4,8 @@ import {
   initializeBorrowerContext,
   storeLoanDetails,
   clearBorrowerContext,
-  getBorrowerContext
+  getBorrowerContext,
+  verify_mla_signature,
 } from '../src/index';
 import { mockOracleService } from '../src/oracle';
 
@@ -85,6 +86,30 @@ describe('Credipro SDK', () => {
       const contextAfter = getBorrowerContext();
       expect(contextAfter.hasCreditData).toBe(false);
       expect(contextAfter.hasEncryptedIdentity).toBe(false);
+    });
+
+    describe('Validation & Negative Paths', () => {
+      test('toBytes32 throws on invalid hex length', () => {
+        expect(() => toBytes32('0x1234')).toThrow('Invalid Bytes32');
+      });
+
+      test('toBytes32 throws on non-hex prefix', () => {
+        expect(() => toBytes32('1234')).toThrow('Invalid Bytes32');
+      });
+
+      test('verify_mla_signature returns false for empty signature', async () => {
+        const pk = toBytes32('0x' + 'a'.repeat(64));
+        const hash = toBytes32('0x' + 'b'.repeat(64));
+        const result = await verify_mla_signature(pk, hash, new Uint8Array(0));
+        expect(result).toBe(false);
+      });
+
+      test('verify_mla_signature returns false for null borrowerPk', async () => {
+        const pk = toBytes32('0x' + 'c'.repeat(64));
+        const hash = toBytes32('0x' + 'd'.repeat(64));
+        const result = await verify_mla_signature(pk, hash, new Uint8Array(0));
+        expect(result).toBe(false);
+      });
     });
   });
 
@@ -267,6 +292,22 @@ describe('Credipro SDK', () => {
 
       expect(approvals).toBe(2);
     });
+
+    test('negative: requestLoan with uninitialized borrower context still handled gracefully', async () => {
+      clearBorrowerContext();
+      const response = await client.requestLoan(
+        BigInt(100000),
+        toBytes32('0x' + 'f'.repeat(64)),
+        BigInt(180)
+      );
+      expect(response.success).toBe(true);
+    });
+
+    test('negative: getOracleApprovals returns 0 when no votes exist', async () => {
+      const emptyLoanId = toBytes32('0x' + '9'.repeat(64));
+      const approvals = await client.getOracleApprovals(emptyLoanId);
+      expect(approvals).toBe(0);
+    });
   });
 
   describe('Sybil Attack Prevention', () => {
@@ -377,7 +418,7 @@ describe('End-to-End Loan Flow', () => {
     expect(approvals).toBeGreaterThanOrEqual(2);
 
     storeLoanDetails({
-      loanId,
+      loanId: toBytes32(loanId),
       disbursalTimestamp: Math.floor(Date.now() / 1000) - 86400 * 200,
       defaultThreshold: BigInt(180)
     });

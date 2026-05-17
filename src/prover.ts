@@ -29,14 +29,20 @@ class PoseidonHasher {
   }
 }
 
-class WitnessStorage {
-  private storage: Map<string, any> = new Map();
+type StoredLoanDetails = {
+  loanId: Bytes32;
+  disbursalTimestamp: number;
+  defaultThreshold: bigint;
+};
 
-  set(key: string, value: any): void {
+class WitnessStorage {
+  private storage: Map<string, unknown> = new Map();
+
+  set(key: string, value: unknown): void {
     this.storage.set(key, value);
   }
 
-  get(key: string): any {
+  get(key: string): unknown {
     return this.storage.get(key);
   }
 
@@ -49,7 +55,7 @@ const witnessStorage = new WitnessStorage();
 
 export async function mock_zkTLS_CreditScore(): Promise<number> {
   try {
-    const creditData: CreditData | undefined = witnessStorage.get('creditData');
+    const creditData = witnessStorage.get('creditData') as CreditData | undefined;
 
     if (!creditData) {
       throw new Error('Credit data not found in witness storage. Call initializeBorrowerContext() during onboarding.');
@@ -74,7 +80,7 @@ export async function mock_zkTLS_CreditScore(): Promise<number> {
 
 export async function read_Identity_NFC(): Promise<Uint8Array> {
   try {
-    const encryptedIdentity: EncryptedIdentity | undefined = witnessStorage.get('encryptedIdentity');
+    const encryptedIdentity = witnessStorage.get('encryptedIdentity') as EncryptedIdentity | undefined;
 
     if (!encryptedIdentity) {
       throw new Error('Encrypted identity not found in witness storage. Call initializeBorrowerContext() during onboarding.');
@@ -112,7 +118,7 @@ export async function compute_identity_hash(passportData: Uint8Array): Promise<B
 
 export async function local_secret_key(): Promise<Bytes32> {
   try {
-    const secretKey: string | undefined = witnessStorage.get('secretKey');
+    const secretKey = witnessStorage.get('secretKey') as string | undefined;
 
     if (!secretKey) {
       throw new Error('Secret key not found in witness storage. Initialize wallet during onboarding.');
@@ -132,7 +138,7 @@ export async function local_secret_key(): Promise<Bytes32> {
 
 export async function get_lender_address(): Promise<Bytes32> {
   try {
-    const lenderAddr: string | undefined = witnessStorage.get('lenderAddress');
+    const lenderAddr = witnessStorage.get('lenderAddress') as string | undefined;
 
     if (!lenderAddr) {
       throw new Error('Lender address not found in witness storage. Set target pool address before requesting loan.');
@@ -147,9 +153,9 @@ export async function get_lender_address(): Promise<Bytes32> {
   }
 }
 
-export async function get_loan_details() {
+export async function get_loan_details(): Promise<StoredLoanDetails> {
   try {
-    const loanDetails = witnessStorage.get('currentLoanDetails');
+    const loanDetails = witnessStorage.get('currentLoanDetails') as StoredLoanDetails | undefined;
 
     if (!loanDetails) {
       throw new Error('Loan details not found in witness storage. Call a requestLoan circuit first.');
@@ -165,7 +171,7 @@ export async function get_loan_details() {
 
 export async function check_default_deadline_exceeded(): Promise<boolean> {
   try {
-    const loanDetails = witnessStorage.get('currentLoanDetails');
+    const loanDetails = witnessStorage.get('currentLoanDetails') as StoredLoanDetails | undefined;
 
     if (!loanDetails) {
       throw new Error('Loan details not found for deadline check');
@@ -227,7 +233,7 @@ export function initializeBorrowerContext(
   logger.info('[WITNESS] Borrower context initialized');
 }
 
-export function storeLoanDetails(loanDetails: any): void {
+export function storeLoanDetails(loanDetails: StoredLoanDetails): void {
   witnessStorage.set('currentLoanDetails', loanDetails);
   logger.info(`[WITNESS] Loan details stored: ${loanDetails.loanId}`);
 }
@@ -237,7 +243,15 @@ export function clearBorrowerContext(): void {
   logger.info('[WITNESS] Borrower context cleared');
 }
 
-export function getBorrowerContext(): any {
+export interface BorrowerContext {
+  hasCreditData: boolean;
+  hasEncryptedIdentity: boolean;
+  hasSecretKey: boolean;
+  hasLenderAddress: boolean;
+  hasLoanDetails: boolean;
+}
+
+export function getBorrowerContext(): BorrowerContext {
   return {
     hasCreditData: witnessStorage.get('creditData') !== undefined,
     hasEncryptedIdentity: witnessStorage.get('encryptedIdentity') !== undefined,

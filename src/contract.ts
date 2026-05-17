@@ -1,8 +1,10 @@
-import { CircuitInputs, CircuitOutput, RequestLoanResponse, TriggerSlashingResponse, LoanRecord, Bytes32, toBytes32 } from './types';
+import { CircuitInputs, CircuitOutput, RequestLoanResponse, TriggerSlashingResponse, LoanRecord, EncryptedIdentity, PublicRiskParam, Bytes32, toBytes32 } from './types';
 import { initializeBorrowerContext, storeLoanDetails } from './prover';
 import { MockOracleService } from './oracle';
 import { logger } from './logger';
 import { hashNoPad } from 'poseidon-goldilocks';
+
+type CircuitCallInputs = CircuitInputs | { loanId: Bytes32 } | Record<string, unknown>;
 
 export class CrediproClient {
   private readonly PROOF_GENERATION_TIMEOUT = 30000;
@@ -10,7 +12,7 @@ export class CrediproClient {
 
   constructor(
     private contractAddress: Bytes32,
-    private wallet: any,
+    private wallet: Record<string, unknown>,
     oracleService?: MockOracleService,
   ) {
     this.oracleService = oracleService;
@@ -19,7 +21,7 @@ export class CrediproClient {
 
   async initializeBorrower(
     creditScore: number,
-    encryptedIdentity: any,
+    encryptedIdentity: EncryptedIdentity,
     secretKey: Bytes32,
     lenderAddress: Bytes32
   ): Promise<void> {
@@ -184,17 +186,18 @@ export class CrediproClient {
     }
   }
 
-  async getPoolDetails(poolAddress: Bytes32): Promise<{ tvl: bigint; riskParams: any } | null> {
+  async getPoolDetails(poolAddress: Bytes32): Promise<{ tvl: bigint; riskParams: PublicRiskParam } | null> {
     try {
       logger.info('[CONTRACT] getPoolDetails() called');
       logger.info(`  poolAddress: ${poolAddress}`);
 
-      const mockParams = {
+      const mockParams: { tvl: bigint; riskParams: PublicRiskParam } = {
         tvl: BigInt(10000000),
         riskParams: {
           minCreditScore: 680,
           maxLTV: 80,
-          minMonthlyIncome: BigInt(5000)
+          minMonthlyIncome: BigInt(5000),
+          maxLoanAmount: BigInt(500000),
         }
       };
 
@@ -205,7 +208,7 @@ export class CrediproClient {
     }
   }
 
-  private async callCircuit(circuitName: string, inputs: any): Promise<CircuitOutput> {
+  private async callCircuit(circuitName: string, inputs: CircuitCallInputs): Promise<CircuitOutput> {
     logger.info(`[CIRCUIT] Calling ${circuitName} on ${this.contractAddress}...`);
     void this.wallet;
 
@@ -233,7 +236,7 @@ export class CrediproClient {
     });
   }
 
-  private generateMockProof(circuitName: string, inputs: any): string {
+  private generateMockProof(circuitName: string, inputs: CircuitCallInputs): string {
     const inputStr = JSON.stringify(inputs, (_, value) =>
       typeof value === 'bigint' ? value.toString() : value
     );
@@ -260,7 +263,7 @@ export class CrediproClient {
 
 export async function createCrediproClient(
   contractAddress: Bytes32,
-  wallet: any,
+  wallet: Record<string, unknown>,
   oracleService?: MockOracleService
 ): Promise<CrediproClient> {
   const client = new CrediproClient(contractAddress, wallet, oracleService);

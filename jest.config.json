@@ -4,6 +4,7 @@
   "roots": ["<rootDir>/src"],
   "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
   "moduleFileExtensions": ["ts", "js", "json"],
+  "setupFiles": ["<rootDir>/jest.setup.js"],
   "collectCoverageFrom": [
     "src/**/*.ts",
     "!src/**/*.d.ts",

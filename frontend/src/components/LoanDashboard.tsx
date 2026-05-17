@@ -4,10 +4,10 @@ import {
   FormControl, FormLabel, useToast, Spinner, Progress, HStack
 } from '@chakra-ui/react';
 import { useCredipro } from '../context/CrediproContext';
-import { toBytes32 } from 'credipro';
+import { requestLoan } from '../api/crediproApi';
 
 export const LoanDashboard: React.FC = () => {
-  const { client, isConnected } = useCredipro();
+  const { isConnected } = useCredipro();
   const [loanAmount, setLoanAmount] = useState<number>(10000);
   const [termDays, setTermDays] = useState<number>(180);
   
@@ -17,8 +17,6 @@ export const LoanDashboard: React.FC = () => {
   const toast = useToast();
 
   const handleRequestLoan = async () => {
-    if (!client) return;
-
     setIsProcessing(true);
     
     try {
@@ -30,16 +28,12 @@ export const LoanDashboard: React.FC = () => {
       setLoadingState('Generating Zero-Knowledge Proof...');
       await new Promise(r => setTimeout(r, 2000));
       
-      // Step 3: Send to contract
+      // Step 3: Submit via API to backend
       setLoadingState('Submitting Proof to Ledger...');
       
-      const poolAddress = toBytes32('0x' + 'f'.repeat(64));
+      const poolAddress = '0x' + 'f'.repeat(64);
       
-      const response = await client.requestLoan(
-        BigInt(loanAmount),
-        poolAddress,
-        BigInt(termDays)
-      );
+      const response = await requestLoan(loanAmount, poolAddress, termDays);
 
       if (response.success) {
         toast({
@@ -52,10 +46,11 @@ export const LoanDashboard: React.FC = () => {
       } else {
         throw new Error(response.error || 'Failed to request loan');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred';
       toast({
         title: 'Error',
-        description: err.message,
+        description: message,
         status: 'error',
         duration: 5000,
         isClosable: true,

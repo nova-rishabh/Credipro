@@ -9,7 +9,7 @@ import {
   Button,
   useToast,
 } from '@chakra-ui/react';
-import { CrediproClient, toBytes32 } from 'credipro';
+import { requestLoan } from '../api/crediproApi';
 
 const LoanRequestForm: React.FC = () => {
   const [loanAmount, setLoanAmount] = useState('');
@@ -20,15 +20,10 @@ const LoanRequestForm: React.FC = () => {
   const handleRequestLoan = async () => {
     setLoading(true);
     try {
-      // This is a placeholder for the actual client initialization
-      const client = new CrediproClient(
-        toBytes32('0x' + '1'.repeat(64)),
-        {}
-      );
-      const response = await client.requestLoan(
-        BigInt(loanAmount),
-        toBytes32(poolAddress),
-        BigInt(180)
+      const response = await requestLoan(
+        Number(loanAmount),
+        poolAddress || '0x' + 'f'.repeat(64),
+        180
       );
       if (response.success) {
         toast({

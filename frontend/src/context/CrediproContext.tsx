@@ -1,10 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CrediproClient, toBytes32 } from 'credipro';
-import { useLaceWallet } from '../hooks/useLaceWallet';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 interface CrediproContextState {
-  client: CrediproClient | null;
-  walletAPI: any | null;
   isConnected: boolean;
   address: string | null;
   isConnecting: boolean;
@@ -14,31 +10,52 @@ interface CrediproContextState {
 
 const CrediproContext = createContext<CrediproContextState | undefined>(undefined);
 
-export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [client, setClient] = useState<CrediproClient | null>(null);
-  const { walletAPI, isConnected, address, isConnecting, error, connect } = useLaceWallet();
+// Extend Window interface for Midnight Lace wallet injection
+declare global {
+  interface Window {
+    midnight?: {
+      mnLace?: {
+        enable: () => Promise<unknown>;
+        isEnabled: () => Promise<boolean>;
+      };
+    };
+  }
+}
 
-  useEffect(() => {
-    if (isConnected && walletAPI) {
-      // Mock contract address for MVP
-      const contractAddress = toBytes32('0x' + '1'.repeat(64));
-      
-      // Initialize the Credipro client
-      const crediproClient = new CrediproClient(contractAddress, walletAPI);
-      setClient(crediproClient);
-    } else {
-      setClient(null);
+export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const connectWallet = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
+    try {
+      if (!window.midnight?.mnLace) {
+        throw new Error(
+          'Midnight Lace wallet is not installed. Please install the extension.'
+        );
+      }
+
+      await window.midnight.mnLace.enable();
+      setIsConnected(true);
+      setAddress('0x' + '1'.repeat(64));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to connect to wallet';
+      setError(message);
+      setIsConnected(false);
+    } finally {
+      setIsConnecting(false);
     }
-  }, [isConnected, walletAPI]);
+  }, []);
 
   const value = {
-    client,
-    walletAPI,
     isConnected,
     address,
     isConnecting,
     error,
-    connectWallet: connect,
+    connectWallet,
   };
 
   return (

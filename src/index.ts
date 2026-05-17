@@ -21,7 +21,8 @@ export {
   initializeBorrowerContext,
   storeLoanDetails,
   clearBorrowerContext,
-  getBorrowerContext
+  getBorrowerContext,
+  BorrowerContext
 } from './prover';
 
 // Oracle Service
@@ -29,7 +30,8 @@ export {
   MockCreditBureau,
   MockIdentityProvider,
   OracleCommittee,
-  MockOracleService
+  MockOracleService,
+  OracleMember
 } from './oracle';
 
 // Version

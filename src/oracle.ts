@@ -57,7 +57,16 @@ export class MockCreditBureau {
 }
 
 export class MockIdentityProvider {
-  private encryptionKey: string = process.env.CREDIPRO_ENCRYPTION_KEY || 'credipro-mvp-key-do-not-use';
+  private encryptionKey: string;
+
+  constructor() {
+    if (!process.env.CREDIPRO_ENCRYPTION_KEY) {
+      throw new Error(
+        'CREDIPRO_ENCRYPTION_KEY environment variable is required for MockIdentityProvider'
+      );
+    }
+    this.encryptionKey = process.env.CREDIPRO_ENCRYPTION_KEY;
+  }
 
   async registerIdentity(borrowerId: string, identity: IdentityData): Promise<void> {
     const db = await getDb();
@@ -151,9 +160,15 @@ export class MockIdentityProvider {
   }
 }
 
+export interface OracleMember {
+  id: string;
+  name: string;
+  publicKey: string;
+}
+
 export class OracleCommittee {
   private threshold: number;
-  private members: any[];
+  private members: OracleMember[];
 
   constructor(memberCount: number = 3, threshold: number = 2) {
     this.threshold = threshold;

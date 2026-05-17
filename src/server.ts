@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { CrediproClient } from './contract';
@@ -9,15 +11,28 @@ import { logger } from './logger';
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  logger.error('[SERVER] FATAL: JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'credipro-dev-secret';
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+
+interface JwtPayload {
+  username: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
 
 export interface AuthenticatedRequest extends Request {
-  user?: any;
+  user?: JwtPayload;
 }
 
 let contractAddress;
@@ -32,6 +47,14 @@ try {
   contractAddress = toBytes32('0x' + '1'.repeat(64));
 }
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,                   // 20 attempts per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts, please try again later' },
+});
+
 const client = new CrediproClient(contractAddress, {}, mockOracleService);
 
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
@@ -43,7 +66,7 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     (req as AuthenticatedRequest).user = decoded;
     next();
   } catch {
@@ -51,14 +74,14 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   }
 }
 
-app.post('/api/auth/token', (req: Request, res: Response) => {
+app.post('/api/auth/token', authLimiter, (req: Request, res: Response) => {
   const { username } = req.body;
-  if (!username) {
-    res.status(400).json({ error: 'Missing username' });
+  if (!username || typeof username !== 'string' || username.trim().length === 0) {
+    res.status(400).json({ error: 'Missing or invalid username' });
     return;
   }
 
-  const token = jwt.sign({ username, role: 'borrower' }, JWT_SECRET, { expiresIn: '24h' });
+  const token = jwt.sign({ username: username.trim(), role: 'borrower' }, JWT_SECRET, { expiresIn: '24h' });
   res.json({ token });
 });
 
@@ -146,8 +169,10 @@ app.get('/api/pool/:address', authMiddleware, async (req: AuthenticatedRequest, 
       res.json({
         tvl: pool.tvl.toString(),
         riskParams: {
-          ...pool.riskParams,
+          minCreditScore: pool.riskParams.minCreditScore,
+          maxLTV: pool.riskParams.maxLTV,
           minMonthlyIncome: pool.riskParams.minMonthlyIncome.toString(),
+          maxLoanAmount: pool.riskParams.maxLoanAmount.toString(),
         },
       });
     } else {
