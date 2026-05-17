@@ -49,12 +49,27 @@ async function apiFetch<T>(
     ...options.headers,
   };
 
+  // Timeout support using AbortController (default 30s)
+  const timeoutMs = (options as any).timeoutMs ?? 30000;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
   const response = await fetch(url, {
     ...options,
     headers,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(id));
 
-  const data = await response.json();
+  if (response.status === 0) {
+    throw new Error('Network error or request aborted');
+  }
+
+  let data: any;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
 
   if (!response.ok) {
     throw new Error(data.error || `Request failed with status ${response.status}`);

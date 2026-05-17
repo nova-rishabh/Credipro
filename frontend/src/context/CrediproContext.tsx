@@ -106,6 +106,30 @@ export const CrediproProvider: React.FC<{ children: ReactNode }> = ({ children }
     return () => { active = false; };
   }, []);
 
+  // When running with a real wallet, monitor wallet connection state and handle mid-flow disconnects
+  useEffect(() => {
+    if (demoMode) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        if (window.midnight?.mnLace && typeof window.midnight.mnLace.isEnabled === 'function') {
+          const enabled = await window.midnight.mnLace.isEnabled();
+          if (!active) return;
+          if (!enabled) {
+            setIsConnected(false);
+            setAddress(null);
+          }
+        }
+      } catch (e) {
+        // ignore polling errors
+      }
+    };
+    const id = setInterval(poll, 5000);
+    // run once immediately
+    poll();
+    return () => { active = false; clearInterval(id); };
+  }, [demoMode]);
+
   const value = {
     isConnected,
     address,
