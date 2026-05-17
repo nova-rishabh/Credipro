@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, VStack, Heading } from '@chakra-ui/react';
 import { LoanDashboard } from './LoanDashboard';
+import LoanDetails from './LoanDetails';
 import DefaultResolution from './DefaultResolution';
 
 const Dashboard: React.FC = () => {
@@ -19,6 +20,7 @@ const Dashboard: React.FC = () => {
         <Heading color="white">Dashboard</Heading>
       </Box>
       <LoanDashboard />
+      <LoanDetails />
       <DefaultResolution />
     </VStack>
   );

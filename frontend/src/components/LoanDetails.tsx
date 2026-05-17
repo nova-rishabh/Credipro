@@ -14,11 +14,11 @@ import {
   Code,
   Divider,
 } from '@chakra-ui/react';
-import { getLoanDetails, LoanDetails } from '../api/crediproApi';
+import { getLoanDetails, LoanDetails as LoanDetailsType } from '../api/crediproApi';
 
 const LoanDetails: React.FC = () => {
   const [loanId, setLoanId] = useState('');
-  const [loanDetails, setLoanDetails] = useState<LoanDetails | null>(null);
+  const [loanDetails, setLoanDetails] = useState<LoanDetailsType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

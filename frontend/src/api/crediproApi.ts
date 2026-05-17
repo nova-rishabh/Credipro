@@ -87,6 +87,7 @@ export interface LoanDetails {
 }
 
 export interface OracleMember {
+  id: string;
   name: string;
   publicKey: string;
 }
@@ -121,6 +122,16 @@ export interface HealthResponse {
   timestamp: string;
   contractAddress: string;
   mockMode: boolean;
+}
+
+export interface PoolDetails {
+  tvl: string;
+  riskParams: {
+    minCreditScore: number;
+    maxLTV: number;
+    minMonthlyIncome: string;
+    maxLoanAmount: string;
+  };
 }
 
 // ============================================
@@ -203,4 +214,12 @@ export async function getOracleApprovals(
  */
 export async function getHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>('/api/health');
+}
+
+/**
+ * Get pool details
+ * GET /api/pool/:address
+ */
+export async function getPoolDetails(address: string): Promise<PoolDetails | null> {
+  return apiFetch<PoolDetails | null>(`/api/pool/${address}`);
 }

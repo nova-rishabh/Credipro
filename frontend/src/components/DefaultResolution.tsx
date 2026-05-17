@@ -19,11 +19,12 @@ import {
   Spinner,
   Center,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningIcon, InfoIcon, RepeatIcon } from '@chakra-ui/icons';
 import {
   oracleVote,
   getOracleMembers,
   triggerSlashing,
+  getOracleApprovals,
   OracleMember,
   OracleVoteResponse,
 } from '../api/crediproApi';
@@ -56,20 +57,68 @@ const DefaultResolution: React.FC = () => {
   const [members, setMembers] = useState<OracleMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
 
-  // --- Per-member vote tracking (client side) ---
+  // --- Per-member vote tracking (client side, using member.id) ---
   const [votedMembers, setVotedMembers] = useState<Set<string>>(new Set());
 
   // --- Aggregate vote state keyed by loanId ---
   const [voteResults, setVoteResults] = useState<Record<string, VoteState>>({});
 
-  // --- Per-member loading indicator ---
+  // --- Per-member loading indicator (using member.id) ---
   const [votingInProgress, setVotingInProgress] = useState<string | null>(null);
+
+  // --- Manual Sync ---
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // --- Slashing ---
   const [slashingLoading, setSlashingLoading] = useState(false);
   const [slashingResult, setSlashingResult] = useState<SlashDisplayState | null>(null);
 
   const toast = useToast();
+
+  // -----------------------------------------------------------------------
+  // Handlers & Helpers
+  // -----------------------------------------------------------------------
+
+  const fetchConsensusProgress = useCallback(async (id: string, showToast = false) => {
+    if (!id.startsWith('0x') || id.length !== 66) return;
+
+    try {
+      if (showToast) setIsSyncing(true);
+      const response = await getOracleApprovals(id);
+      
+      setVoteResults((prev) => ({
+        ...prev,
+        [id]: {
+          consensusReached: response.approvalCount >= response.threshold,
+          approvalCount: response.approvalCount,
+          threshold: response.threshold,
+          totalMembers: response.totalMembers,
+        },
+      }));
+
+      if (showToast) {
+        toast({
+          title: 'Status Refreshed',
+          description: `Approvals: ${response.approvalCount}/${response.threshold}`,
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      if (showToast) {
+        toast({
+          title: 'Error refreshing status',
+          description: error instanceof Error ? error.message : 'Unknown error',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } finally {
+      if (showToast) setIsSyncing(false);
+    }
+  }, [toast]);
 
   // -----------------------------------------------------------------------
   // Effects
@@ -112,19 +161,20 @@ const DefaultResolution: React.FC = () => {
     };
   }, [toast]);
 
-  // Reset per-loan state when loanId changes
+  // Dynamic Ledger Fetching
   useEffect(() => {
+    const trimmedId = loanId.trim();
+    if (trimmedId.startsWith('0x') && trimmedId.length === 66) {
+      fetchConsensusProgress(trimmedId, false);
+    }
+    
+    // Reset transient client state on ID change
     setVotedMembers(new Set());
-    setVoteResults((prev) => prev);
     setSlashingResult(null);
-  }, [loanId]);
-
-  // -----------------------------------------------------------------------
-  // Handlers
-  // -----------------------------------------------------------------------
+  }, [loanId, fetchConsensusProgress]);
 
   const handleVote = useCallback(
-    async (memberName: string) => {
+    async (memberId: string) => {
       const trimmedId = loanId.trim();
       if (!trimmedId) {
         toast({
@@ -137,13 +187,13 @@ const DefaultResolution: React.FC = () => {
         return;
       }
 
-      setVotingInProgress(memberName);
+      setVotingInProgress(memberId);
       try {
-        const response: OracleVoteResponse = await oracleVote(trimmedId, memberName);
+        const response: OracleVoteResponse = await oracleVote(trimmedId, memberId);
 
         if (response.success) {
           // Mark member as voted
-          setVotedMembers((prev) => new Set(prev).add(memberName));
+          setVotedMembers((prev) => new Set(prev).add(memberId));
 
           // Store aggregate vote state keyed by loan id
           setVoteResults((prev) => ({
@@ -160,7 +210,7 @@ const DefaultResolution: React.FC = () => {
           setSlashingResult(null);
 
           toast({
-            title: `Vote cast by ${memberName}`,
+            title: `Vote cast successfully`,
             description: `${response.approvalCount}/${response.totalMembers} approvals`,
             status: 'success',
             duration: 3000,
@@ -200,11 +250,11 @@ const DefaultResolution: React.FC = () => {
       if (response.success) {
         setSlashingResult({
           status: 'success',
-          message: `Loan ${trimmedId} has been marked as defaulted and slashing was triggered successfully.`,
+          message: `Loan ${trimmedId.slice(0, 10)}... has been marked as defaulted and slashing was triggered successfully.`,
         });
         toast({
           title: 'Slashing triggered',
-          description: `Loan ${trimmedId} has been marked as defaulted.`,
+          description: `Loan has been marked as defaulted.`,
           status: 'success',
           duration: 9000,
           isClosable: true,
@@ -243,13 +293,16 @@ const DefaultResolution: React.FC = () => {
   // Derived state
   // -----------------------------------------------------------------------
 
-  const currentVote = loanId.trim() ? voteResults[loanId.trim()] : undefined;
+  const trimmedLoanId = loanId.trim();
+  const currentVote = trimmedLoanId ? voteResults[trimmedLoanId] : undefined;
+  
   const approvalCount = currentVote?.approvalCount ?? 0;
   const threshold = currentVote?.threshold ?? Math.ceil(members.length * (2 / 3));
   const totalMembers = currentVote?.totalMembers ?? members.length;
   const consensusReached = currentVote?.consensusReached ?? false;
+  
   const progressPercent = threshold > 0 ? (approvalCount / threshold) * 100 : 0;
-  const canVote = loanId.trim().length > 0;
+  const canVote = trimmedLoanId.length > 0;
   const remainingVotes = Math.max(0, threshold - approvalCount);
 
   // -----------------------------------------------------------------------
@@ -268,9 +321,23 @@ const DefaultResolution: React.FC = () => {
     >
       <VStack spacing={6} align="stretch">
         {/* ---------- Title ---------- */}
-        <Heading size="lg" textAlign="center" color="white">
-          Oracle Voting Panel
-        </Heading>
+        <HStack justify="space-between">
+          <Heading size="lg" color="white">
+            Oracle Voting Panel
+          </Heading>
+          {trimmedLoanId.startsWith('0x') && trimmedLoanId.length === 66 && (
+            <Button
+              size="sm"
+              leftIcon={<RepeatIcon />}
+              onClick={() => fetchConsensusProgress(trimmedLoanId, true)}
+              isLoading={isSyncing}
+              colorScheme="blue"
+              variant="outline"
+            >
+              Refresh Status
+            </Button>
+          )}
+        </HStack>
 
         <Divider borderColor="rgba(255, 255, 255, 0.15)" />
 
@@ -278,7 +345,7 @@ const DefaultResolution: React.FC = () => {
         <FormControl>
           <FormLabel fontWeight="semibold">Loan ID</FormLabel>
           <Input
-            placeholder="Enter loan ID to resolve..."
+            placeholder="Enter valid 66-character Loan ID (0x...)"
             value={loanId}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoanId(e.target.value)}
             bg="rgba(255, 255, 255, 0.05)"
@@ -321,12 +388,12 @@ const DefaultResolution: React.FC = () => {
           ) : (
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
               {members.map((member) => {
-                const hasVoted = votedMembers.has(member.name);
-                const isLoading = votingInProgress === member.name;
+                const hasVoted = votedMembers.has(member.id);
+                const isLoading = votingInProgress === member.id;
 
                 return (
                   <Box
-                    key={member.name}
+                    key={member.id}
                     p={5}
                     borderRadius="lg"
                     bg="rgba(255, 255, 255, 0.03)"
@@ -369,11 +436,10 @@ const DefaultResolution: React.FC = () => {
                         size="sm"
                         colorScheme={hasVoted ? 'green' : 'blue'}
                         variant={hasVoted ? 'outline' : 'solid'}
-                        onClick={() => handleVote(member.name)}
+                        onClick={() => handleVote(member.id)}
                         isLoading={isLoading}
                         loadingText="Voting..."
                         isDisabled={hasVoted || !canVote}
-                        leftIcon={hasVoted ? undefined : undefined}
                         w="full"
                       >
                         {hasVoted ? 'Vote Recorded' : `Vote as ${member.name}`}
@@ -512,7 +578,7 @@ const DefaultResolution: React.FC = () => {
                 <Text fontSize="sm" color="gray.500">
                   {canVote
                     ? 'Awaiting oracle votes to reach consensus threshold...'
-                    : 'Enter a Loan ID above to begin the voting process'}
+                    : 'Enter a valid Loan ID above to begin the voting process'}
                 </Text>
               </HStack>
             </Box>
