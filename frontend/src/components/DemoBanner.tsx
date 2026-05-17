@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useCredipro } from '../context/CrediproContext';
 
 const DemoBanner: React.FC = () => {
+  const { isDemoMode } = useCredipro();
   const [visible, setVisible] = useState(true);
 
-  if (!visible) return null;
+  if (!isDemoMode || !visible) return null;
 
   return (
     <div className="w-full bg-surface-container-highest/50 border-b border-white/5 py-2 px-margin-desktop flex justify-between items-center gap-3 z-[60] relative backdrop-blur-sm">

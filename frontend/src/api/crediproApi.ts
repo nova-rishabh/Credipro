@@ -131,9 +131,18 @@ export interface SlashResponse {
 
 export interface HealthResponse {
   contractAddress?: string;
+  mode?: 'demo' | 'production';
   mockMode?: boolean;
   compiledContractPresent?: boolean; 
   contractConnected?: boolean;
+  missingEnvVars?: string[];
+}
+
+export interface ModeResponse {
+  mode: 'demo' | 'production';
+  success?: boolean;
+  missingEnvVars?: string[];
+  error?: string;
 }
 
 export interface PoolDetails {
@@ -234,4 +243,23 @@ export async function getHealth(): Promise<HealthResponse> {
  */
 export async function getPoolDetails(address: string): Promise<PoolDetails | null> {
   return apiFetch<PoolDetails | null>(`/api/pool/${address}`);
+}
+
+/**
+ * Get current app mode
+ * GET /api/mode
+ */
+export async function getMode(): Promise<ModeResponse> {
+  return apiFetch<ModeResponse>('/api/mode');
+}
+
+/**
+ * Set app mode (demo or production)
+ * PUT /api/mode
+ */
+export async function setMode(mode: 'demo' | 'production'): Promise<ModeResponse> {
+  return apiFetch<ModeResponse>('/api/mode', {
+    method: 'PUT',
+    body: JSON.stringify({ mode }),
+  });
 }
