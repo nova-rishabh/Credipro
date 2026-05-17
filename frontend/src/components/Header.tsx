@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Flex, Heading, Spacer } from '@chakra-ui/react';
 import { WalletConnectButton } from './WalletConnectButton';
+import HealthBanner from './HealthBanner';
 
 const Header: React.FC = () => {
   return (
@@ -16,6 +17,7 @@ const Header: React.FC = () => {
       <Flex maxW="container.xl" mx="auto" align="center">
         <Heading size="md" color="white">Credipro</Heading>
         <Spacer />
+        <HealthBanner />
         <WalletConnectButton />
       </Flex>
     </Box>

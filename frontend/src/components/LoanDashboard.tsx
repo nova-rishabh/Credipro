@@ -6,6 +6,7 @@ import {
 } from '@chakra-ui/react';
 import { useCredipro } from '../context/CrediproContext';
 import { requestLoan, getPoolDetails, PoolDetails } from '../api/crediproApi';
+import OracleMembers from './OracleMembers';
 
 export const LoanDashboard: React.FC = () => {
   const { isConnected, contractAddress } = useCredipro();
@@ -119,6 +120,9 @@ export const LoanDashboard: React.FC = () => {
 
   return (
     <VStack spacing={6} align="stretch" w="full">
+      <Box>
+        <OracleMembers />
+      </Box>
       {/* Pool Parameters Header */}
       <Box
         p={6}
