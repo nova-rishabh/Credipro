@@ -1183,6 +1183,8 @@ export const __contractDescriptors = {
   Uint64: _descriptor_3,
   PublicRiskParam: _descriptor_6,
   UintIndex: _descriptor_13,
+  LoanRecord: _descriptor_7,
+  OracleApprovalCount: _descriptor_8,
 };
 export const contractReferenceLocations =
   { tag: 'publicLedgerArray', indices: { } };

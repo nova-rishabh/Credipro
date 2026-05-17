@@ -6,7 +6,7 @@ import * as path from 'path';
 import { MockOracleService } from './oracle';
 import { logger } from '../lib/logger';
 import { hashNoPad } from 'poseidon-goldilocks';
-import { isDemo } from '../lib/appMode';
+import { getCircuitMode } from '../lib/appMode';
 
 type CircuitCallInputs = CircuitInputs | { loanId: Bytes32 } | Record<string, unknown>;
 
@@ -59,10 +59,9 @@ export class CrediproClient {
       logger.info(`  poolAddress: ${poolAddress}`);
       logger.info(`  defaultTermDays: ${defaultTermDays}`);
 
-      // If not explicitly enabled to use compiled artifacts, keep mock flow
-      // Set USE_COMPILED_CONTRACT=true to opt into running compiled circuits.
-      // On-chain via midnight-js SDK
-      if (process.env.USE_ONCHAIN_CONTRACT === 'true') {
+      const circuitMode = getCircuitMode();
+
+      if (circuitMode === 'onchain') {
         // Build inputs from witness storage (keeps existing initializer semantics)
         // For now reuse the mock inputs pattern; witness-driven inputs can be added.
         const inputs: CircuitInputs = {
@@ -98,7 +97,8 @@ export class CrediproClient {
         }
       }
 
-      if (process.env.USE_COMPILED_CONTRACT !== 'true' || isDemo() || !(await this.hasCompiledContract())) {
+      // Mock path when compiled circuit not configured
+      if (circuitMode !== 'compiled' || !(await this.hasCompiledContract())) {
         const inputs: CircuitInputs = {
           loanAmount,
           poolAddress,
@@ -132,7 +132,6 @@ export class CrediproClient {
         };
       }
 
-      // Use compiled provable circuit
       await this.ensureContractLoaded();
 
       const poolBytes = hexToBytes(poolAddress);
@@ -209,7 +208,9 @@ export class CrediproClient {
         };
       }
 
-      if (process.env.USE_ONCHAIN_CONTRACT === 'true') {
+      const circuitMode = getCircuitMode();
+
+      if (circuitMode === 'onchain') {
         try {
           // Read approvals from on-chain ledger map if available
           const approvals = await midnightClient.readLedgerMap(this.contractAddress, 'oracleCommitteeSignatures', loanId);
@@ -230,7 +231,7 @@ export class CrediproClient {
         }
       }
 
-      if (process.env.USE_COMPILED_CONTRACT !== 'true' || isDemo() || !(await this.hasCompiledContract())) {
+      if (circuitMode !== 'compiled' || !(await this.hasCompiledContract())) {
         await this.callCircuit('triggerSlashing', { loanId });
 
         logger.info(`[CONTRACT] Slashing triggered for loan ${loanId}`);
@@ -247,10 +248,62 @@ export class CrediproClient {
       await this.ensureContractLoaded();
 
       const loanIdBytes = hexToBytes(loanId as unknown as string);
-      const context = await this.buildCompiledCircuitContext();
+      const runtime = await new Function("return import('@midnight-ntwrk/compact-runtime')")();
+      const contextObj = await this.buildCompiledCircuitContext();
+      const desc = this.contractModule.__contractDescriptors;
+      const partialProofData = { input: { value: [] as number[], alignment: [] as number[] }, output: undefined, publicTranscript: [] as any[], privateTranscriptOutputs: [] as any[] };
+
+      // Seed loan record into encryptedIdentityCommitments (map index 2)
+      if (desc && desc.LoanRecord) {
+        try {
+          const loanRecordValue = {
+            identityHash: loanIdBytes,
+            loanId: loanIdBytes,
+            lenderAddress: new Uint8Array(32).fill(0xdd),
+            disbursedAmount: BigInt(100000),
+            disbursalTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 200),
+            defaultThreshold: BigInt(180),
+            isDefaulted: false,
+          };
+          const loanRecordEncoded = runtime.StateValue.newCell({
+            value: desc.LoanRecord.toValue(loanRecordValue),
+            alignment: desc.LoanRecord.alignment(),
+          }).encode();
+          const loanIdEncoded = runtime.StateValue.newCell({
+            value: desc.Bytes32.toValue(loanIdBytes),
+            alignment: desc.Bytes32.alignment(),
+          }).encode();
+
+          runtime.queryLedgerState(contextObj, partialProofData, [
+            { idx: { cached: false, pushPath: true, path: [{ tag: 'value', value: { value: desc.UintIndex.toValue(2n), alignment: desc.UintIndex.alignment() } }] } },
+            { push: { storage: false, value: loanIdEncoded } },
+            { push: { storage: true, value: loanRecordEncoded } },
+            { ins: { cached: false, n: 1 } },
+            { ins: { cached: true, n: 1 } },
+          ]);
+
+          // Seed oracle votes into oracleCommitteeSignatures (map index 3)
+          const oracleCountEncoded = runtime.StateValue.newCell({
+            value: desc.OracleApprovalCount.toValue(2n),
+            alignment: desc.OracleApprovalCount.alignment(),
+          }).encode();
+
+          runtime.queryLedgerState(contextObj, partialProofData, [
+            { idx: { cached: false, pushPath: true, path: [{ tag: 'value', value: { value: desc.UintIndex.toValue(3n), alignment: desc.UintIndex.alignment() } }] } },
+            { push: { storage: false, value: loanIdEncoded } },
+            { push: { storage: true, value: oracleCountEncoded } },
+            { ins: { cached: false, n: 1 } },
+            { ins: { cached: true, n: 1 } },
+          ]);
+
+          logger.info('[CONTRACT] Loan record and oracle votes seeded for compiled triggerSlashing');
+        } catch (e) {
+          logger.warn('[CONTRACT] Failed to seed triggerSlashing ledger data:', e);
+        }
+      }
 
       try {
-        const res = await this.contractInstance.provableCircuits.triggerSlashing(context, loanIdBytes);
+        const res = await this.contractInstance.provableCircuits.triggerSlashing(contextObj, loanIdBytes);
 
         logger.info(`[CONTRACT] Slashing triggered for loan ${loanId}`);
 
@@ -259,7 +312,7 @@ export class CrediproClient {
         return {
           success: true,
           marked: true,
-          gasUsed: String(res.gasCost || 0)
+          gasUsed: String(res.gasCost?.computeTime || res.gasCost?.readTime || 0)
         };
       } catch (e: any) {
         logger.warn('[CONTRACT] Compiled triggerSlashing failed, falling back to mock circuit:', e?.message || e);
@@ -308,8 +361,7 @@ export class CrediproClient {
       logger.info('[CONTRACT] getLoanDetails() called');
       logger.info(`  loanId: ${loanId}`);
 
-      // If configured to use on-chain contract, read loan record from ledger
-      if (process.env.USE_ONCHAIN_CONTRACT === 'true') {
+      if (getCircuitMode() === 'onchain') {
         try {
           const ledgerRecord = await midnightClient.readLedgerMap(this.contractAddress, 'encryptedIdentityCommitments', loanId);
           if (!ledgerRecord) {
@@ -384,8 +436,7 @@ export class CrediproClient {
       logger.info('[CONTRACT] getPoolDetails() called');
       logger.info(`  poolAddress: ${poolAddress}`);
 
-      // If on-chain, read ledger maps
-      if (process.env.USE_ONCHAIN_CONTRACT === 'true') {
+      if (getCircuitMode() === 'onchain') {
         try {
           const tvl = await midnightClient.readLedgerMap(this.contractAddress, 'liquidityPools', poolAddress);
           const risk = await midnightClient.readLedgerMap(this.contractAddress, 'publicRiskParameters', poolAddress);

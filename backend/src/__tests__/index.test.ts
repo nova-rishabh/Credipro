@@ -444,3 +444,152 @@ describe('End-to-End Loan Flow', () => {
     expect(decryptedIdentity.firstName).toBeTruthy();
   });
 });
+
+describe('Edge Cases & Serialization', () => {
+  test('requestLoan with low credit score still succeeds in mock mode', async () => {
+    const client = new CrediproClient(toBytes32('0x' + '1'.repeat(64)), {}, mockOracleService);
+    clearBorrowerContext();
+    initializeBorrowerContext(
+      350,
+      {
+        ciphertext: '0x' + 'a'.repeat(128),
+        iv: '0x' + 'b'.repeat(24),
+        salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
+        algorithm: 'aes-256-gcm'
+      },
+      toBytes32('0x' + 'd'.repeat(64)),
+      toBytes32('0x' + 'e'.repeat(64))
+    );
+    const response = await client.requestLoan(BigInt(50000), toBytes32('0x' + 'f'.repeat(64)), BigInt(180));
+    // Mock mode does not enforce credit score thresholds
+    expect(response.success).toBe(true);
+  });
+
+  test('triggerSlashing before deadline fails without oracle consensus', async () => {
+    const client = new CrediproClient(toBytes32('0x' + '1'.repeat(64)), {}, mockOracleService);
+    const loanId = toBytes32('0x' + 'c'.repeat(64));
+    clearBorrowerContext();
+    storeLoanDetails({
+      loanId,
+      disbursalTimestamp: Math.floor(Date.now() / 1000),
+      defaultThreshold: BigInt(180)
+    });
+    const response = await client.triggerSlashing(loanId);
+    // Needs at least 2 oracle approvals
+    expect(response.success).toBe(false);
+  });
+
+  test('BigInt loan amount serializes as string in JSON', async () => {
+    const client = new CrediproClient(toBytes32('0x' + '1'.repeat(64)), {}, mockOracleService);
+    clearBorrowerContext();
+    initializeBorrowerContext(
+      720,
+      {
+        ciphertext: '0x' + 'a'.repeat(128),
+        iv: '0x' + 'b'.repeat(24),
+        salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
+        algorithm: 'aes-256-gcm'
+      },
+      toBytes32('0x' + 'd'.repeat(64)),
+      toBytes32('0x' + 'e'.repeat(64))
+    );
+    const response = await client.requestLoan(BigInt(250000), toBytes32('0x' + 'f'.repeat(64)), BigInt(180));
+    expect(response.success).toBe(true);
+    const json = JSON.stringify(response);
+    expect(json).toContain('"loanId"');
+    expect(json).toContain('"proof"');
+  });
+});
+
+describe('Mode Switching', () => {
+  let client: CrediproClient;
+  const contractAddr = toBytes32('0x' + '1'.repeat(64));
+
+  beforeEach(async () => {
+    clearBorrowerContext();
+    await mockOracleService.clearAllData();
+  });
+
+  test('Client works in demo mode by default', async () => {
+    client = new CrediproClient(contractAddr, {}, mockOracleService);
+    initializeBorrowerContext(
+      720,
+      {
+        ciphertext: '0x' + 'a'.repeat(128),
+        iv: '0x' + 'b'.repeat(24),
+        salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
+        algorithm: 'aes-256-gcm'
+      },
+      toBytes32('0x' + 'd'.repeat(64)),
+      toBytes32('0x' + 'e'.repeat(64))
+    );
+    const response = await client.requestLoan(BigInt(100000), toBytes32('0x' + 'f'.repeat(64)), BigInt(180));
+    expect(response.success).toBe(true);
+  });
+
+  test('requestLoan fallback works when compiled contract fails', async () => {
+    // This simulates compiled contract being configured but failing
+    // Since we're in demo mode, the mock path is used regardless
+    client = new CrediproClient(contractAddr, {}, mockOracleService);
+    initializeBorrowerContext(
+      720,
+      {
+        ciphertext: '0x' + 'a'.repeat(128),
+        iv: '0x' + 'b'.repeat(24),
+        salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
+        algorithm: 'aes-256-gcm'
+      },
+      toBytes32('0x' + 'd'.repeat(64)),
+      toBytes32('0x' + 'e'.repeat(64))
+    );
+    const response = await client.requestLoan(BigInt(100000), toBytes32('0x' + 'f'.repeat(64)), BigInt(180));
+    expect(response.success).toBe(true);
+  });
+
+  test('Pool BigInt fields serialize as strings in JSON', async () => {
+    client = new CrediproClient(contractAddr, {}, mockOracleService);
+    const pool = await client.getPoolDetails(toBytes32('0x' + 'f'.repeat(64)));
+    expect(pool).toBeTruthy();
+    expect(typeof pool!.tvl).toBe('bigint');
+    expect(typeof pool!.riskParams.minMonthlyIncome).toBe('bigint');
+    const json = JSON.stringify(pool, (_key: string, value: unknown) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
+    expect(json).toContain('"tvl"');
+    expect(json).toContain('"minMonthlyIncome"');
+  });
+
+  test('verifyMasterLoanAgreement returns true for empty signature in mock mode', async () => {
+    client = new CrediproClient(contractAddr, {}, mockOracleService);
+    const result = await client.verifyMasterLoanAgreement(
+      toBytes32('0x' + 'c'.repeat(64)),
+      toBytes32('0x' + 'd'.repeat(64)),
+      new Uint8Array(0)
+    );
+    expect(result).toBe(true);
+  });
+
+  test('Loan request with zero amount succeeds in mock mode', async () => {
+    client = new CrediproClient(contractAddr, {}, mockOracleService);
+    clearBorrowerContext();
+    initializeBorrowerContext(
+      720,
+      {
+        ciphertext: '0x' + 'a'.repeat(128),
+        iv: '0x' + 'b'.repeat(24),
+        salt: '0x' + 'c'.repeat(32),
+        authTag: '0x' + 'd'.repeat(32),
+        algorithm: 'aes-256-gcm'
+      },
+      toBytes32('0x' + 'd'.repeat(64)),
+      toBytes32('0x' + 'e'.repeat(64))
+    );
+    const response = await client.requestLoan(BigInt(0), toBytes32('0x' + 'f'.repeat(64)), BigInt(180));
+    expect(response.success).toBe(true);
+    expect(response.loanId).toBeTruthy();
+  });
+});

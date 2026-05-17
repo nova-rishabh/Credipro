@@ -302,3 +302,32 @@ describe('API /pool', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('API /mode', () => {
+  it('GET /api/mode returns current mode', async () => {
+    const res = await request(app).get('/api/mode');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('mode');
+    expect(res.body).toHaveProperty('missingEnvVars');
+  });
+
+  it('PUT /api/mode rejects invalid mode', async () => {
+    const res = await request(app)
+      .put('/api/mode')
+      .send({ mode: 'invalid' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('PUT /api/mode can switch to demo', async () => {
+    const res = await request(app)
+      .put('/api/mode')
+      .send({ mode: 'demo' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe('demo');
+  });
+});

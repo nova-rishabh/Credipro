@@ -2,6 +2,7 @@ import { logger } from './logger';
 import { getDb } from './db';
 
 export type AppMode = 'demo' | 'production';
+export type CircuitMode = 'mock' | 'compiled' | 'onchain';
 
 let currentMode: AppMode = 'demo';
 
@@ -15,6 +16,19 @@ export function isDemo(): boolean {
 
 export function isProduction(): boolean {
   return currentMode === 'production';
+}
+
+export function getCircuitMode(): CircuitMode {
+  if (currentMode === 'demo') {
+    return 'mock';
+  }
+  if (process.env.USE_ONCHAIN_CONTRACT === 'true') {
+    return 'onchain';
+  }
+  if (process.env.USE_COMPILED_CONTRACT === 'true') {
+    return 'compiled';
+  }
+  return 'mock';
 }
 
 export function setMode(mode: AppMode): { success: boolean; error?: string } {
