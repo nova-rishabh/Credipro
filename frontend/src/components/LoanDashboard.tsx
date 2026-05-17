@@ -38,6 +38,7 @@ export const LoanDashboard: React.FC = () => {
   // --- Processing ---
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep,  setCurrentStep]  = useState<number>(-1); // -1 = idle
+  const [loanId, setLoanId] = useState<string | null>(null);
 
   // --- Pool ---
   const [poolParams,    setPoolParams]    = useState<PoolDetails | null>(null);
@@ -120,6 +121,7 @@ export const LoanDashboard: React.FC = () => {
           await new Promise(r => setTimeout(r, 600));
           const response = await requestLoan(loanAmount, poolAddress, termDays);
           if (response.success) {
+            setLoanId(response.loanId ?? null);
             notify({
               title: '✅ Loan Requested!',
               description: `Loan ID: ${response.loanId?.substring(0, 14)}…`,
@@ -362,6 +364,21 @@ export const LoanDashboard: React.FC = () => {
           })}
         </div>
       </section>
+
+      {/* Loan ID Result Section */}
+      {loanId && (
+        <section className="col-span-12 glass-panel p-unit-lg rounded-xl border border-primary/20 mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">receipt</span>
+            <h3 className="text-headline-md font-headline-md text-on-surface">Your Generated Loan ID</h3>
+          </div>
+          <code className="text-primary font-mono-data bg-surface-container-lowest px-3 py-1 rounded border border-white/10">
+            {loanId}
+          </code>
+        </section>
+      )}
     </>
   );
 };
+
+export default LoanDashboard;

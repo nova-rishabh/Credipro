@@ -21,13 +21,10 @@ async function ensureAuthToken(): Promise<string> {
       authToken = String(data.token);
       return authToken;
     }
-    // If auth is disabled or token endpoint is unavailable, fall back gracefully
-    authToken = '';
-    return authToken;
-  } catch {
-    // Backend may not be running — allow unauthenticated fallback
-    authToken = '';
-    return authToken;
+    throw new Error(data.error || 'Failed to retrieve authentication token');
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    throw new Error('Authentication service unavailable');
   }
 }
 
