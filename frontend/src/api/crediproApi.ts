@@ -4,10 +4,37 @@
  */
 
 const API_BASE_URL = 'http://localhost:3001';
-const AUTH_TOKEN = 'mvp-demo-token';
+
+// Lazily cached auth token — fetched from backend on first use
+let authToken: string | null = null;
+
+async function ensureAuthToken(): Promise<string> {
+  if (authToken) return authToken;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'mvp-frontend-user' }),
+    });
+    const data = await res.json();
+    if (data.token) {
+      authToken = String(data.token);
+      return authToken;
+    }
+    // If auth is disabled or token endpoint is unavailable, fall back gracefully
+    authToken = '';
+    return authToken;
+  } catch {
+    // Backend may not be running — allow unauthenticated fallback
+    authToken = '';
+    return authToken;
+  }
+}
 
 /**
- * Generic fetch wrapper with auth headers and error handling
+ * Generic fetch wrapper with auth headers and error handling.
+ * Automatically obtains and caches a JWT from the backend.
+ * Throws on non-OK HTTP responses for proper error handling by callers.
  */
 async function apiFetch<T>(
   endpoint: string,
@@ -15,29 +42,25 @@ async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  const token = await ensureAuthToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${AUTH_TOKEN}`,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
 
-    // Parse JSON response - backend returns structured errors even on non-200
-    const data = await response.json();
+  const data = await response.json();
 
-    // Return data even on non-200 (backend returns structured error body)
-    return data as T;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`API request failed: ${error.message}`);
-    }
-    throw new Error('API request failed: Unknown error');
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with status ${response.status}`);
   }
+
+  return data as T;
 }
 
 // ============================================
