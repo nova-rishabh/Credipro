@@ -3,11 +3,35 @@
  * Typed API client for communicating with the Express backend
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-const AUTH_TOKEN = 'mvp-demo-token';
+const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:3001';
+
+// Lazily cached auth token — fetched from backend on first use
+let authToken: string | null = null;
+
+async function ensureAuthToken(): Promise<string> {
+  if (authToken) return authToken;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'mvp-frontend-user' }),
+    });
+    const data = await res.json();
+    if (data.token) {
+      authToken = String(data.token);
+      return authToken;
+    }
+    throw new Error(data.error || 'Failed to retrieve authentication token');
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    throw new Error('Authentication service unavailable');
+  }
+}
 
 /**
- * Generic fetch wrapper with auth headers and error handling
+ * Generic fetch wrapper with auth headers and error handling.
+ * Automatically obtains and caches a JWT from the backend.
+ * Throws on non-OK HTTP responses for proper error handling by callers.
  */
 async function apiFetch<T>(
   endpoint: string,
@@ -15,29 +39,40 @@ async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  const token = await ensureAuthToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${AUTH_TOKEN}`,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+  // Timeout support using AbortController (default 30s)
+  const timeoutMs = (options as any).timeoutMs ?? 30000;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
 
-    // Parse JSON response - backend returns structured errors even on non-200
-    const data = await response.json();
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(id));
 
-    // Return data even on non-200 (backend returns structured error body)
-    return data as T;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`API request failed: ${error.message}`);
-    }
-    throw new Error('API request failed: Unknown error');
+  if (response.status === 0) {
+    throw new Error('Network error or request aborted');
   }
+
+  let data: any;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with status ${response.status}`);
+  }
+
+  return data as T;
 }
 
 // ============================================
@@ -64,6 +99,7 @@ export interface LoanDetails {
 }
 
 export interface OracleMember {
+  id: string;
   name: string;
   publicKey: string;
 }
@@ -94,10 +130,20 @@ export interface SlashResponse {
 }
 
 export interface HealthResponse {
-  status: string;
-  timestamp: string;
-  contractAddress: string;
-  mockMode: boolean;
+  contractAddress?: string;
+  mockMode?: boolean;
+  compiledContractPresent?: boolean; 
+  contractConnected?: boolean;
+}
+
+export interface PoolDetails {
+  tvl: string;
+  riskParams: {
+    minCreditScore: number;
+    maxLTV: number;
+    minMonthlyIncome: string;
+    maxLoanAmount: string;
+  };
 }
 
 // ============================================
@@ -180,4 +226,12 @@ export async function getOracleApprovals(
  */
 export async function getHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>('/api/health');
+}
+
+/**
+ * Get pool details
+ * GET /api/pool/:address
+ */
+export async function getPoolDetails(address: string): Promise<PoolDetails | null> {
+  return apiFetch<PoolDetails | null>(`/api/pool/${address}`);
 }
