@@ -1,0 +1,50 @@
+Credipro MVP — Update Summary
+================================
+Date: May 17, 2026
+Branch: pdev
+
+OVERALL PROGRESS: ~40-45% toward demo-ready MVP
+
+ACCEPTANCE CRITERIA (6/10 met)
+-------------------------------
+  1. Backend starts, serves API on :3001     ✅
+  2. Frontend starts, renders on :3000       ✅
+  3. Lace Wallet connects                    ❓ Not verified
+  4. Loan request returns valid loan ID      ✅
+  5. Loan details show record                ✅
+  6. Oracle vote achieves consensus          ✅ (manual)
+  7. Trigger slashing marks loan defaulted   ✅
+  8. Identity reveal shows borrower info     ✅
+  9. Demo script from start to finish        ❌
+ 10. All tests pass                          🟡 Not run recently
+
+WORKSTREAM PROGRESS
+-------------------
+  A - Deploy & Onchain        ~10%   deploy.ts exists but uncompiled
+  B - Backend Integration     ~85%   All routes + services done
+  C - Frontend & UX           ~20%   Components merged, no polish
+  D - Oracle & Identity       ~50%   Core logic done, demo endpoints missing
+  E - Tests & QA              ~50%   58 tests, 4 test files
+  F - Docs & Rehearsal        ~10%   No DEMO_SCRIPT or rehearsal
+
+RECENT CHANGES THIS SESSION
+----------------------------
+  - Created  todolist-backend.md       (ordered backend task list)
+  - Updated  TODO_MVP.md              (revised checklist reflecting actual state)
+
+CHANGES THAT DID NOT PERSIST (apply_patch failed silently)
+----------------------------------------------------------
+  - backend/src/routes/oracle.routes.ts    4 new oracle endpoints
+  - backend/src/__tests__/server.test.ts   4 new oracle route tests
+
+BLOCKERS & GAPS
+---------------
+  1. Oracle demo endpoints not written         2h work
+  2. Frontend polish missing (banner, toasts)  6h work
+  3. deploy.ts not compiled                    1.5h work
+  4. No DEMO_SCRIPT.md                         4h work
+
+NEXT STEP
+---------
+  Apply the pending backend writes (oracle endpoints + tests),
+  then run full test suite to verify nothing is broken.
