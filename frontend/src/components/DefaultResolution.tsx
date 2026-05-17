@@ -162,11 +162,7 @@ const DefaultResolution: React.FC = () => {
       } catch (error) {
         if (!cancelled) {
           setMembers([]);
-          notify({
-            title: 'Error fetching oracle members',
-            description: error instanceof Error ? error.message : 'Unknown error',
-            status: 'error',
-          });
+          // Silently fail in demo mode when backend is offline
         }
       } finally {
         if (!cancelled) setMembersLoading(false);
