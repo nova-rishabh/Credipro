@@ -133,10 +133,10 @@ export interface SlashResponse {
 }
 
 export interface HealthResponse {
-  status: string;
-  timestamp: string;
-  contractAddress: string;
-  mockMode: boolean;
+  contractAddress?: string;
+  mockMode?: boolean;
+  compiledContractPresent?: boolean; 
+  contractConnected?: boolean;
 }
 
 export interface PoolDetails {

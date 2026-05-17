@@ -27,12 +27,17 @@
   "author": "Credipro Team",
   "license": "MIT",
   "overrides": {
-    "@chakra-ui/react": "2.10.9",
-    "@chakra-ui/utils": "2.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@chakra-ui/react": "^2.10.9",
+    "@chakra-ui/utils": "2.2.5",
     "jest-util": "^29.7.0"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "framer-motion": "^12.38.0"
   }
 }
