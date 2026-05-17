@@ -239,7 +239,7 @@ app.get('/api/oracle/members', authMiddleware, (_req: AuthenticatedRequest, res:
   res.json({ members });
 });
 
-if (require.main === module) {
+if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     logger.info(`[SERVER] Credipro backend running on port ${PORT}`);
     logger.info(`[SERVER] Mock mode: ${process.env.MOCK_ORACLE_MODE !== 'false'}`);

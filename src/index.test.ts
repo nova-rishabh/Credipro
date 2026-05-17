@@ -8,6 +8,7 @@ import {
   verify_mla_signature,
 } from '../src/index';
 import { mockOracleService } from '../src/oracle';
+import { jest } from '@jest/globals';
 
 describe('Credipro SDK', () => {
   let client: CrediproClient;

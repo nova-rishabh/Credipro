@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "allowJs": true,
+    "module": "ES2020",
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*", "dist/**/*", "jest.setup.js"],
+  "exclude": ["node_modules"]
+}
