@@ -6,8 +6,8 @@ import HealthBanner from './HealthBanner';
 const Header: React.FC = () => {
   return (
     <Box
-      bg="rgba(15, 12, 41, 0.8)"
-      backdropFilter="blur(10px)"
+      bg="rgba(15, 12, 41, 0.85)"
+      backdropFilter="blur(12px)"
       borderBottom="1px solid rgba(255, 255, 255, 0.1)"
       p={4}
       position="sticky"
@@ -15,7 +15,6 @@ const Header: React.FC = () => {
       zIndex={10}
     >
       <Flex maxW="container.xl" mx="auto" align="center">
-        {/* Try to show project logo if provided in /logo/, else fallback to text */}
         <LogoOrTitle />
         <Spacer />
         <HealthBanner />

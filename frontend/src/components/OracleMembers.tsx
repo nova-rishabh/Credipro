@@ -14,19 +14,20 @@ export const OracleMembers: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    const fetch = async () => {
+    const fetchOracleMembers = async () => {
       setLoading(true);
       try {
         const res = await getOracleMembers();
         if (!active) return;
         setMembers(res.members ?? []);
-      } catch (e) {
-        setMembers([]);
+      } catch {
+        // Silently fail — DefaultResolution shows an error if needed
+        if (active) setMembers([]);
       } finally {
         if (active) setLoading(false);
       }
     };
-    fetch();
+    fetchOracleMembers();
     return () => { active = false; };
   }, []);
 
