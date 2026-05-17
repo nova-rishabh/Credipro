@@ -1,0 +1,141 @@
+CREDIPRO — 16-HOUR MVP SPRINT PLAN
+====================================
+Goal: Presentable end-to-end demo on Midnight testnet
+
+TIMELINE
+--------
+Hour 0-2:   ✅ Toolchain & Compilation          DONE
+Hour 2-3:   Testnet Deployment
+Hour 3-6:   ✅ Backend Real Contract Integration  DONE
+Hour 6-8:   Frontend Real Data Wiring
+Hour 8-10:  Flow Fixes & Edge Cases
+Hour 10-12: Demo Script & README
+Hour 12-14: Final UI Polish
+Hour 14-16: Buffer & Rehearsal
+
+
+HOUR 0-2: TOOLCHAIN & COMPILATION ✅
+-------------------------------------
+[x] Check if Midnight CLI/Compact compiler is installed
+[x] Install Midnight toolchain if missing
+[x] Run `npm run compile:contract` and fix any errors
+[x] Generate TypeScript bindings from compiled contract
+[x] Verify compiled contract loads in a test script
+
+
+HOUR 2-3: TESTNET DEPLOYMENT
+------------------------------
+[ ] Set up Midnight testnet access
+    - Get RPC URL from .env (testnet-rpc.midnight.network)
+    - Fund a deployer wallet (testnet faucet)
+[ ] Write deployment script (scripts/deploy.ts)
+    - Connect to testnet RPC
+    - Deploy Credipro contract with empty initial state
+    - Return contract address
+[ ] Run deployment, save contract address to .env
+    - MIDNIGHT_CONTRACT_ADDRESS=<real-address>
+[ ] Verify contract is queryable on testnet
+
+
+HOUR 3-6: BACKEND REAL CONTRACT INTEGRATION ✅
+---------------------------------------------
+[x] Update CrediproClient to use real contract calls
+    - Replaced mock proof generation with real midnight-js SDK calls
+    - Imported @midnight-ntwrk/midnight-js-contracts
+    - Wired up contractAddress from env
+[x] Implement real requestLoan flow:
+    - Build circuit inputs from borrower witness data
+    - Call contract.requestLoan(circuitInputs)
+    - Parse real loan ID from contract response
+[x] Implement real triggerSlashing flow:
+    - Read oracle approvals from contract state
+    - Call contract.triggerSlashing(loanId)
+[x] Implement real getLoanDetails:
+    - Read encryptedIdentityCommitments map from ledger
+[x] Implement real getPoolDetails:
+    - Read liquidityPools + publicRiskParameters from ledger
+[x] Add error handling for contract timeouts/reverts
+[x] Update /api/health to show real contract connection status
+
+
+HOUR 6-8: FRONTEND REAL DATA WIRING
+-------------------------------------
+[ ] Update LoanDashboard to display data from real contract
+    - Show actual ledger state (pool TVL, risk params)
+    - Show real loan IDs after requestLoan succeeds
+[ ] Update DefaultResolution to read real oracle state
+    - Fetch actual oracleMembers from committee
+    - Show real approval counts from contract ledger
+[ ] Update LoanDetails to fetch from contract via backend
+[ ] Add loading states for contract calls (they take 5-30s)
+[ ] Add error display for contract failures
+
+
+HOUR 8-10: FLOW FIXES & EDGE CASES
+------------------------------------
+[ ] Run through the full demo flow:
+    Connect -> Request Loan -> Check Loan Details ->
+    Vote as Oracle -> Trigger Slashing -> Verify Defaulted
+[ ] Fix any broken API responses (BigInt serialization, etc.)
+[ ] Handle contract timeouts gracefully
+[ ] Handle wallet disconnect mid-flow
+[ ] Test with backend + frontend running together
+
+
+HOUR 10-12: DEMO SCRIPT & README
+----------------------------------
+[ ] Write step-by-step demo script (DEMO_SCRIPT.md)
+    - Prerequisites (env vars, wallets)
+    - Step 1: Start backend
+    - Step 2: Start frontend
+    - Step 3: Walk through each feature
+    - Expected screenshots/explanations
+[ ] Update README with MVP demo instructions
+[ ] Clean up any console.log spam from production build
+[ ] Verify production build works: npm run build (backend + frontend)
+
+
+HOUR 12-14: FINAL UI POLISH
+-----------------------------
+[ ] Add demo-mode splash banner ("Demo Mode -- Not Live")
+[ ] Polish loan request form: realistic preset inputs, clear validation errors
+[ ] Add progress indicators with realistic timing for each step
+[ ] Improve the oracle voting panel: highlight active step in the flow
+[ ] Add success/error toast consistency across all actions
+[ ] Ensure mobile-responsive layout for demo viewers
+[ ] Add keyboard shortcuts or auto-pilot mode for guided walkthroughs
+[ ] Clean up any placeholder text, unused imports, dead code
+
+
+HOUR 14-16: BUFFER & REHEARSAL
+--------------------------------
+[ ] Fix any unforeseen compilation issues
+[ ] Handle testnet RPC rate limits / outages
+[ ] Record demo video (optional but recommended)
+[ ] Dry-run the full demo flow front-to-back 3 times
+[ ] Prepare talking points for each screen
+
+
+ACCEPTANCE CRITERIA
+-------------------
+By hour 16, a demo should be able to:
+
+1. Start backend + frontend locally
+2. Connect in demo mode (no wallet required)
+3. Request a loan -> see real (or mock) loan ID
+4. View loan details
+5. Vote as oracle 1 + 2 -> see consensus reached
+6. Trigger slashing -> see loan marked as defaulted
+
+The smart contract may still be mocks behind the scenes
+if real compilation fails, but the demo flow must work end-to-end.
+
+
+FALLBACK PLAN (if contract compilation fails)
+----------------------------------------------
+If Compact compilation / testnet deployment is too complex:
+- Keep current mock circuit layer but make it more convincing
+- Add realistic timing delays to simulate proof generation
+- Add better mock data that looks like real contract state
+- Polish the demo narrative: "This shows what the real contract does"
+- Focus on UX polish and demo script quality instead
