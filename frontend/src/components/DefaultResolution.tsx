@@ -1,35 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  VStack,
-  HStack,
-  Heading,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  Input,
-  Button,
-  Text,
-  SimpleGrid,
-  Progress,
-  Badge,
-  Divider,
-  Tag,
-  TagLabel,
-  TagLeftIcon,
-  Spinner,
-  Center,
-  Tooltip,
-  Flex,
-} from '@chakra-ui/react';
-import {
-  CheckCircleIcon,
-  WarningIcon,
-  InfoIcon,
-  RepeatIcon,
-  LockIcon,
-} from '@chakra-ui/icons';
-import {
   oracleVote,
   getOracleMembers,
   triggerSlashing,
@@ -303,53 +273,36 @@ const DefaultResolution: React.FC = () => {
   // -----------------------------------------------------------------------
 
   return (
-    <Box
-      w="full"
-      p={{ base: 4, md: 8 }}
-      borderRadius="xl"
-      bg="rgba(255, 255, 255, 0.05)"
-      backdropFilter="blur(10px)"
-      border="1px solid rgba(255, 255, 255, 0.1)"
-      boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
-    >
-      <VStack spacing={6} align="stretch">
+    <section className="glass-panel p-unit-lg rounded-xl">
+      <div className="space-y-6">
 
         {/* -------- Title + Refresh -------- */}
-        <HStack justify="space-between" flexWrap="wrap" gap={2}>
-          <Heading size="lg" color="white">
-            Oracle Voting Panel
-          </Heading>
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-error">gavel</span>
+            <h3 className="text-headline-md font-headline-md text-on-surface">Oracle Voting & Slashing Panel</h3>
+          </div>
           {isValidLoanId && (
-            <Button
-              size="sm"
-              leftIcon={<RepeatIcon />}
+            <button
               onClick={() => fetchConsensusProgress(trimmedLoanId, true)}
-              isLoading={isSyncing}
-              colorScheme="blue"
-              variant="outline"
+              disabled={isSyncing}
+              className="px-4 py-2 bg-surface-container-highest text-on-surface text-sm font-bold rounded-lg hover:bg-surface-container-highest/80 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2 border border-white/10"
             >
-              Refresh Status
-            </Button>
+              <span className={`material-symbols-outlined text-sm ${isSyncing ? 'animate-spin' : ''}`}>refresh</span>
+              <span>Refresh Status</span>
+            </button>
           )}
-        </HStack>
+        </div>
 
-        <Divider borderColor="rgba(255, 255, 255, 0.15)" />
+        <hr className="border-white/10" />
 
         {/* -------- Step-flow indicator -------- */}
-        <Box
-          p={4}
-          borderRadius="lg"
-          bg="rgba(255,255,255,0.03)"
-          border="1px solid rgba(255,255,255,0.08)"
-        >
-          <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={3} textTransform="uppercase" letterSpacing="wider">
-            Voting Flow
-          </Text>
-          <Flex
-            direction={{ base: 'column', md: 'row' }}
-            align={{ base: 'stretch', md: 'center' }}
-            gap={0}
-          >
+        <div className="p-4 rounded-lg bg-surface-container/30 border border-white/5">
+          <p className="text-xs text-on-surface-variant font-bold mb-4 uppercase tracking-wider">Voting Flow</p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 relative">
+            {/* Background Connectors */}
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -z-10 hidden md:block"></div>
+
             {ORACLE_STEPS.map((step, idx) => {
               const isDone    = idx < activeStep;
               const isActive  = idx === activeStep;
@@ -357,302 +310,224 @@ const DefaultResolution: React.FC = () => {
 
               return (
                 <React.Fragment key={step.id}>
-                  <Tooltip label={step.description} hasArrow placement="top">
-                    <VStack
-                      spacing={1}
-                      align="center"
-                      flex={1}
-                      opacity={isPending ? 0.4 : 1}
-                      transition="opacity 0.3s"
-                      cursor="default"
-                    >
-                      {/* Circle indicator */}
-                      <Box
-                        w={8}
-                        h={8}
-                        borderRadius="full"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        bg={isDone ? 'green.500' : isActive ? 'blue.500' : 'rgba(255,255,255,0.08)'}
-                        border="2px solid"
-                        borderColor={isDone ? 'green.400' : isActive ? 'blue.400' : 'rgba(255,255,255,0.15)'}
-                        boxShadow={isActive ? '0 0 12px rgba(66,153,225,0.6)' : 'none'}
-                        transition="all 0.3s"
-                        fontSize="sm"
-                        fontWeight="bold"
-                        color={isDone ? 'white' : isActive ? 'white' : 'gray.600'}
-                      >
-                        {isDone ? <CheckCircleIcon boxSize={4} /> : idx + 1}
-                      </Box>
-
-                      {/* Label */}
-                      <Text
-                        fontSize="xs"
-                        fontWeight={isActive ? 'bold' : 'normal'}
-                        color={isDone ? 'green.300' : isActive ? 'blue.200' : 'gray.600'}
-                        textAlign="center"
-                        maxW="80px"
-                      >
-                        {step.label}
-                      </Text>
-                    </VStack>
-                  </Tooltip>
-
-                  {/* Connector line */}
+                  <div className={`flex flex-col items-center gap-2 group relative flex-1 ${isPending ? 'opacity-40' : ''} transition-all duration-300`}>
+                    <div className={`w-10 h-10 rounded-full bg-surface-container-highest border-2 ${isDone ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : isActive ? 'border-primary text-primary bg-primary/10 shadow-[0_0_15px_rgba(173,198,255,0.4)]' : 'border-white/20 text-white/40'} flex items-center justify-center relative transition-all`}>
+                      {isActive && <div className="absolute inset-0 rounded-full zk-shimmer opacity-30 animate-pulse"></div>}
+                      {isDone ? (
+                        <span className="material-symbols-outlined text-sm">done</span>
+                      ) : (
+                        <span className="text-sm font-bold">{idx + 1}</span>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-on-surface mb-0.5">{step.label}</p>
+                      <p className="text-[10px] text-on-surface-variant max-w-[120px]">{step.description}</p>
+                    </div>
+                  </div>
                   {idx < ORACLE_STEPS.length - 1 && (
-                    <Box
-                      flex={1}
-                      h="2px"
-                      maxH="2px"
-                      bg={idx < activeStep ? 'green.500' : 'rgba(255,255,255,0.1)'}
-                      transition="background 0.4s"
-                      display={{ base: 'none', md: 'block' }}
-                    />
+                    <span className="material-symbols-outlined text-white/20 hidden md:block text-sm">arrow_forward</span>
                   )}
                 </React.Fragment>
               );
             })}
-          </Flex>
-        </Box>
+          </div>
+        </div>
 
-        <Divider borderColor="rgba(255, 255, 255, 0.15)" />
+        <hr className="border-white/10" />
 
         {/* -------- Loan ID Input -------- */}
-        <FormControl isInvalid={trimmedLoanId.length > 0 && !isValidLoanId}>
-          <FormLabel fontWeight="semibold">Loan ID</FormLabel>
-          <Input
+        <div>
+          <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Loan ID</label>
+          <input
             id="oracle-loan-id"
+            type="text"
+            className={`w-full bg-surface-container-lowest border ${trimmedLoanId.length > 0 && !isValidLoanId ? 'border-error focus:ring-error' : 'border-white/10 focus:ring-primary'} rounded-lg py-3 px-4 text-on-surface font-mono-data focus:ring-2 outline-none transition-all`}
             placeholder="Enter valid 66-character Loan ID (0x…)"
             value={loanId}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoanId(e.target.value)}
-            bg="rgba(255, 255, 255, 0.05)"
-            border="1px solid rgba(255, 255, 255, 0.15)"
-            fontFamily="monospace"
-            fontSize="sm"
-            _hover={{ borderColor: 'blue.400' }}
-            _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px #4299e1' }}
-            _invalid={{ borderColor: 'red.400' }}
           />
-          <FormHelperText color={trimmedLoanId.length > 0 && !isValidLoanId ? 'red.400' : 'gray.500'} fontSize="xs">
+          <p className={`text-xs mt-1.5 ${trimmedLoanId.length > 0 && !isValidLoanId ? 'text-error font-medium' : 'text-on-surface-variant font-mono-data'}`}>
             {trimmedLoanId.length > 0 && !isValidLoanId
               ? `Invalid — must be 0x followed by 64 hex characters (currently ${trimmedLoanId.length} chars)`
               : 'Format: 0x followed by 64 hex characters'}
-          </FormHelperText>
-        </FormControl>
+          </p>
+        </div>
 
-        <Divider borderColor="rgba(255, 255, 255, 0.15)" />
+        <hr className="border-white/10" />
 
         {/* -------- Oracle Members -------- */}
-        <Box>
-          <HStack justify="space-between" mb={4}>
-            <Heading size="md">Oracle Members</Heading>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-body-lg font-bold text-on-surface">Oracle Committee Members</h4>
             {membersLoading && (
-              <HStack spacing={2}>
-                <Spinner size="sm" color="blue.400" />
-                <Text fontSize="sm" color="gray.400">Loading…</Text>
-              </HStack>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs text-on-surface-variant">Loading…</span>
+              </div>
             )}
-          </HStack>
+          </div>
 
           {membersLoading ? (
-            <Center py={8}>
-              <Spinner size="lg" color="blue.400" thickness="3px" />
-            </Center>
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
           ) : members.length === 0 ? (
-            <Center py={8}>
-              <VStack spacing={2}>
-                <WarningIcon boxSize={8} color="yellow.400" />
-                <Text color="gray.400">No oracle members available</Text>
-              </VStack>
-            </Center>
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-on-surface-variant">
+              <span className="material-symbols-outlined text-4xl text-warning">warning</span>
+              <p className="text-sm">No oracle members available</p>
+            </div>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {members.map((member) => {
                 const hasVoted  = votedMembers.has(member.id);
                 const isLoading = votingInProgress === member.id;
                 const disabled  = hasVoted || !canVote || !isValidLoanId;
 
                 return (
-                  <Box
+                  <div
                     key={member.id}
-                    p={5}
-                    borderRadius="lg"
-                    bg="rgba(255, 255, 255, 0.03)"
-                    border="1px solid"
-                    borderColor={hasVoted ? 'green.500' : isLoading ? 'blue.500' : 'rgba(255, 255, 255, 0.1)'}
-                    transition="all 0.25s"
-                    boxShadow={isLoading ? '0 0 16px rgba(66,153,225,0.35)' : 'none'}
-                    _hover={{
-                      borderColor: hasVoted ? 'green.400' : disabled ? undefined : 'blue.400',
-                      bg: disabled ? undefined : 'rgba(255, 255, 255, 0.06)',
-                      transform: disabled ? undefined : 'translateY(-2px)',
-                    }}
+                    className={`p-5 rounded-lg bg-surface-container/30 border ${hasVoted ? 'border-emerald-500/50 bg-emerald-500/5' : isLoading ? 'border-primary shadow-[0_0_15px_rgba(173,198,255,0.3)]' : 'border-white/5'} transition-all duration-300 flex flex-col justify-between`}
                   >
-                    <VStack spacing={3} align="stretch">
-                      <HStack justify="space-between">
-                        <VStack align="start" spacing={0}>
-                          <Text fontWeight="bold" fontSize="md">{member.name}</Text>
-                          <Text fontSize="xs" color="gray.500" isTruncated maxW="180px">
-                            {member.publicKey.slice(0, 20)}…
-                          </Text>
-                        </VStack>
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h5>
+                          <p className="text-xs text-on-surface-variant font-mono-data truncate max-w-[150px]">
+                            {member.publicKey.slice(0, 16)}…
+                          </p>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${hasVoted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : isLoading ? 'bg-primary/20 text-primary border border-primary/30 animate-pulse' : 'bg-surface-container-highest text-on-surface-variant'}`}>
+                          {hasVoted ? (
+                            <>
+                              <span className="material-symbols-outlined text-xs">done</span>
+                              <span>Voted</span>
+                            </>
+                          ) : isLoading ? (
+                            <>
+                              <div className="w-2.5 h-2.5 border border-primary border-t-transparent rounded-full animate-spin"></div>
+                              <span>Voting…</span>
+                            </>
+                          ) : (
+                            <span>Pending</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
 
-                        <Tag
-                          size="sm"
-                          variant="subtle"
-                          colorScheme={hasVoted ? 'green' : isLoading ? 'blue' : 'gray'}
-                          borderRadius="full"
-                        >
-                          {hasVoted ? <TagLeftIcon as={CheckCircleIcon} /> : isLoading ? <TagLeftIcon as={Spinner} /> : null}
-                          <TagLabel>{hasVoted ? 'Voted' : isLoading ? 'Voting…' : 'Pending'}</TagLabel>
-                        </Tag>
-                      </HStack>
-
-                      <Tooltip
-                        label={!isValidLoanId ? 'Enter a valid Loan ID first' : hasVoted ? 'Already voted' : `Vote as ${member.name}`}
-                        hasArrow
-                      >
-                        <Button
-                          size="sm"
-                          colorScheme={hasVoted ? 'green' : 'blue'}
-                          variant={hasVoted ? 'outline' : 'solid'}
-                          onClick={() => handleVote(member.id)}
-                          isLoading={isLoading}
-                          loadingText="Voting…"
-                          isDisabled={disabled}
-                          w="full"
-                          leftIcon={disabled && !hasVoted && !isLoading ? <LockIcon boxSize={3} /> : undefined}
-                        >
-                          {hasVoted ? 'Vote Recorded ✓' : `Vote as ${member.name}`}
-                        </Button>
-                      </Tooltip>
-                    </VStack>
-                  </Box>
+                    <button
+                      type="button"
+                      onClick={() => handleVote(member.id)}
+                      disabled={disabled}
+                      className={`w-full py-3 px-4 font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm ${hasVoted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-primary text-on-primary hover:brightness-110 active:scale-[0.98] shadow-lg shadow-primary/20'} disabled:opacity-50`}
+                    >
+                      {hasVoted ? (
+                        <>
+                          <span className="material-symbols-outlined text-sm">check_circle</span>
+                          <span>Vote Recorded</span>
+                        </>
+                      ) : isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span>Voting…</span>
+                        </>
+                      ) : (
+                        <>
+                          {disabled && !hasVoted && !isLoading && <span className="material-symbols-outlined text-xs">lock</span>}
+                          <span>Vote as {member.name}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 );
               })}
-            </SimpleGrid>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Divider borderColor="rgba(255, 255, 255, 0.15)" />
+        <hr className="border-white/10" />
 
         {/* -------- Consensus Progress -------- */}
-        <Box>
-          <HStack justify="space-between" mb={2}>
-            <Heading size="sm" color="gray.300">Consensus Progress</Heading>
-            <Badge
-              variant="solid"
-              colorScheme={consensusReached ? 'green' : approvalCount > 0 ? 'blue' : 'gray'}
-              px={3}
-              py={1}
-              borderRadius="full"
-              fontSize="sm"
-            >
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Consensus Progress</h4>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${consensusReached ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : approvalCount > 0 ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-surface-container-highest text-on-surface-variant'}`}>
               {consensusReached
                 ? '✓ Consensus Reached'
                 : approvalCount > 0
                 ? `${remainingVotes} more vote${remainingVotes !== 1 ? 's' : ''} needed`
                 : 'Awaiting votes'}
-            </Badge>
-          </HStack>
+            </span>
+          </div>
 
-          <Progress
-            value={progressPercent}
-            max={100}
-            size="lg"
-            borderRadius="md"
-            colorScheme={consensusReached ? 'green' : 'blue'}
-            bg="rgba(255, 255, 255, 0.08)"
-            hasStripe={!consensusReached}
-            isAnimated={!consensusReached && approvalCount > 0}
-            mb={2}
-            transition="all 0.5s"
-          />
+          <div className="w-full bg-surface-container-highest rounded-full h-3 overflow-hidden border border-white/5 mb-3">
+            <div
+              className={`h-full transition-all duration-500 ${consensusReached ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-gradient-to-r from-primary to-secondary'}`}
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
 
-          <HStack justify="space-between" fontSize="sm" color="gray.400">
-            <Text>{approvalCount} / {threshold} approvals needed</Text>
-            <Text>{totalMembers} member{totalMembers !== 1 ? 's' : ''} total</Text>
-          </HStack>
-        </Box>
+          <div className="flex justify-between text-xs text-on-surface-variant font-mono-data">
+            <span>{approvalCount} / {threshold} approvals needed</span>
+            <span>{totalMembers} member{totalMembers !== 1 ? 's' : ''} total</span>
+          </div>
+        </div>
 
-        <Divider borderColor="rgba(255, 255, 255, 0.15)" />
+        <hr className="border-white/10" />
 
         {/* -------- Slashing Action -------- */}
-        <Box>
+        <div>
           {consensusReached ? (
-            <VStack spacing={4}>
-              <HStack spacing={3} p={3} borderRadius="lg" bg="rgba(72,187,120,0.08)" border="1px solid rgba(72,187,120,0.2)" w="full">
-                <CheckCircleIcon boxSize={5} color="green.400" />
-                <Text color="green.300" fontWeight="semibold">
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+                <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
+                <p className="text-sm text-emerald-200 font-medium">
                   Consensus threshold met — you may now trigger on-chain slashing.
-                </Text>
-              </HStack>
+                </p>
+              </div>
 
-              <Button
+              <button
                 id="oracle-trigger-slash"
-                colorScheme="red"
-                size="lg"
-                w="full"
-                leftIcon={<WarningIcon />}
+                type="button"
                 onClick={handleTriggerSlashing}
-                isLoading={slashingLoading}
-                loadingText="Executing Slashing…"
-                isDisabled={slashingLoading}
-                _hover={{
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(229, 62, 62, 0.4)',
-                }}
-                transition="all 0.2s"
+                disabled={slashingLoading}
+                className="w-full py-4 bg-error text-white font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-error/20"
               >
-                Trigger Slashing
-              </Button>
+                {slashingLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Executing Slashing…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">warning</span>
+                    <span>Trigger Slashing</span>
+                  </>
+                )}
+              </button>
 
               {slashingResult && (
-                <Box
-                  w="full"
-                  p={4}
-                  borderRadius="lg"
-                  bg={slashingResult.status === 'success' ? 'rgba(72, 187, 120, 0.1)' : 'rgba(245, 101, 101, 0.1)'}
-                  border="1px solid"
-                  borderColor={slashingResult.status === 'success' ? 'rgba(72, 187, 120, 0.3)' : 'rgba(245, 101, 101, 0.3)'}
-                >
-                  <HStack spacing={3}>
-                    {slashingResult.status === 'success'
-                      ? <CheckCircleIcon boxSize={5} color="green.400" />
-                      : <WarningIcon boxSize={5} color="red.400" />
-                    }
-                    <Text fontSize="sm" color={slashingResult.status === 'success' ? 'green.200' : 'red.200'}>
-                      {slashingResult.message}
-                    </Text>
-                  </HStack>
-                </Box>
+                <div className={`p-4 rounded-lg border flex items-start gap-3 ${slashingResult.status === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-error/10 border-error/30 text-error'}`}>
+                  <span className="material-symbols-outlined text-xl">{slashingResult.status === 'success' ? 'check_circle' : 'warning'}</span>
+                  <p className="text-sm font-medium">{slashingResult.message}</p>
+                </div>
               )}
-            </VStack>
+            </div>
           ) : (
-            <Box
-              p={4}
-              borderRadius="lg"
-              bg="rgba(255, 255, 255, 0.03)"
-              border="1px dashed rgba(255, 255, 255, 0.15)"
-              textAlign="center"
-            >
-              <HStack justify="center" spacing={2}>
-                <InfoIcon boxSize={4} color="gray.500" />
-                <Text fontSize="sm" color="gray.500">
-                  {!isValidLoanId
-                    ? 'Enter a valid Loan ID above to begin the voting process'
-                    : canVote && approvalCount === 0
-                    ? 'Cast at least one oracle vote to start building consensus'
-                    : 'Awaiting oracle votes to reach consensus threshold…'}
-                </Text>
-              </HStack>
-            </Box>
+            <div className="p-6 rounded-lg bg-surface-container/30 border border-dashed border-white/15 flex items-center justify-center gap-3 text-on-surface-variant">
+              <span className="material-symbols-outlined text-xl">info</span>
+              <p className="text-sm font-medium">
+                {!isValidLoanId
+                  ? 'Enter a valid Loan ID above to begin the voting process'
+                  : canVote && approvalCount === 0
+                  ? 'Cast at least one oracle vote to start building consensus'
+                  : 'Awaiting oracle votes to reach consensus threshold…'}
+              </p>
+            </div>
           )}
-        </Box>
+        </div>
 
-      </VStack>
-    </Box>
+      </div>
+    </section>
   );
 };
 

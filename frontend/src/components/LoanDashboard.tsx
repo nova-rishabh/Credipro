@@ -1,44 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Button,
-  VStack,
-  Heading,
-  Text,
-  FormControl,
-  FormLabel,
-  FormErrorMessage,
-  FormHelperText,
-  Select,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  Spinner,
-  HStack,
-  SimpleGrid,
-  Divider,
-  Code,
-  Badge,
-  Progress,
-  Tooltip,
-  Flex,
-} from '@chakra-ui/react';
-import { CheckCircleIcon, TimeIcon } from '@chakra-ui/icons';
 import { useCredipro } from '../context/CrediproContext';
 import { requestLoan, getPoolDetails, PoolDetails } from '../api/crediproApi';
 import { useNotify } from '../hooks/useNotify';
-import OracleMembers from './OracleMembers';
 
 // ---------------------------------------------------------------------------
 // Step definitions for the ZK + ledger flow
 // ---------------------------------------------------------------------------
 const LOAN_STEPS = [
-  { id: 'witness',   label: 'Generating ZK witness locally…',       durationMs: 1400 },
-  { id: 'proof',     label: 'Verifying credit eligibility circuit…', durationMs: 2000 },
-  { id: 'broadcast', label: 'Broadcasting to Midnight ledger…',      durationMs: 1500 },
-  { id: 'settle',    label: 'Settling state & updating indexer…',    durationMs: 1200 },
+  { id: 'witness',   label: 'Generating ZK witness locally…',       durationMs: 1400, icon: 'done' },
+  { id: 'proof',     label: 'Verifying credit eligibility circuit…', durationMs: 2000, icon: 'cyclone' },
+  { id: 'broadcast', label: 'Broadcasting to Midnight ledger…',      durationMs: 1500, icon: 'hub' },
+  { id: 'settle',    label: 'Settling state & updating indexer…',    durationMs: 1200, icon: 'check_circle' },
 ];
 
 // Preset loan scenarios shown in the dropdown
@@ -50,9 +22,6 @@ const PRESETS = [
   { label: '🏦 Enterprise — 100,000 ADA / 730 days', amount: 100000, term: 730 },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 export const LoanDashboard: React.FC = () => {
   const { isConnected, contractAddress } = useCredipro();
   const notify = useNotify();
@@ -146,11 +115,9 @@ export const LoanDashboard: React.FC = () => {
       for (let i = 0; i < LOAN_STEPS.length; i++) {
         setCurrentStep(i);
         if (i < LOAN_STEPS.length - 1) {
-          // All steps except the last are simulated delays
           await new Promise(r => setTimeout(r, LOAN_STEPS[i].durationMs));
         } else {
-          // Last step: real API call
-          await new Promise(r => setTimeout(r, 600)); // brief UX pause
+          await new Promise(r => setTimeout(r, 600));
           const response = await requestLoan(loanAmount, poolAddress, termDays);
           if (response.success) {
             notify({
@@ -176,261 +143,225 @@ export const LoanDashboard: React.FC = () => {
   const formatAmount = (amount: string | number): string =>
     new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(amount));
 
-  // -------------------------------------------------------------------------
-  // Not connected state
-  // -------------------------------------------------------------------------
   if (!isConnected) {
     return (
-      <Box
-        p={8}
-        borderRadius="xl"
-        bg="rgba(255, 255, 255, 0.05)"
-        backdropFilter="blur(10px)"
-        border="1px solid rgba(255, 255, 255, 0.1)"
-        boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
-        textAlign="center"
-      >
-        <Text color="gray.200">Please connect your Lace wallet to request a loan.</Text>
-      </Box>
+      <div className="col-span-12 glass-panel p-8 rounded-xl text-center border border-white/10 shadow-2xl">
+        <p className="text-body-lg text-gray-200">Please connect your Lace wallet to request a loan.</p>
+      </div>
     );
   }
 
   const progressPct =
     currentStep >= 0 ? Math.round(((currentStep + 1) / LOAN_STEPS.length) * 100) : 0;
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
   return (
-    <VStack spacing={6} align="stretch" w="full">
-      {/* Oracle committee */}
-      <Box>
-        <OracleMembers />
-      </Box>
+    <>
+      {/* Widget 1: Liquidity Pool Overview */}
+      <section className="col-span-12 lg:col-span-7 glass-panel p-unit-lg rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex justify-between items-start mb-unit-lg">
+            <div>
+              <h3 className="text-headline-md font-headline-md text-on-surface">Liquidity Pool Overview</h3>
+              <p className="text-body-md text-on-surface-variant">Alpha Institutional Pool #1</p>
+            </div>
+            <div className="text-right flex items-center gap-3">
+              {isFetchingPool && <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>}
+              <div>
+                <span className="text-headline-lg font-headline-lg text-primary">8.5%</span>
+                <p className="text-label-md font-label-md text-on-surface-variant">Est. APY</p>
+              </div>
+            </div>
+          </div>
 
-      {/* Pool Parameters */}
-      <Box
-        p={6}
-        borderRadius="xl"
-        bg="rgba(255, 255, 255, 0.05)"
-        backdropFilter="blur(10px)"
-        border="1px solid rgba(255, 255, 255, 0.1)"
-        boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
-      >
-        <HStack justify="space-between" mb={4}>
-          <Heading size="md" color="white">Pool Parameters</Heading>
-          {isFetchingPool && <Spinner size="sm" color="blue.400" />}
-        </HStack>
-        {poolParams ? (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            <HStack justify="space-between">
-              <Text color="gray.400">TVL</Text>
-              <Text fontWeight="bold">{formatAmount(poolParams.tvl)} ADA</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text color="gray.400">Min Credit Score</Text>
-              <Text fontWeight="bold">{poolParams.riskParams.minCreditScore}</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text color="gray.400">Max LTV</Text>
-              <Text fontWeight="bold">{poolParams.riskParams.maxLTV}%</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text color="gray.400">Min Monthly Income</Text>
-              <Text fontWeight="bold">{formatAmount(poolParams.riskParams.minMonthlyIncome)} ADA</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text color="gray.400">Max Loan Amount</Text>
-              <Badge colorScheme="blue" fontSize="sm" px={2}>
-                {formatAmount(poolParams.riskParams.maxLoanAmount)} ADA
-              </Badge>
-            </HStack>
-            <HStack justify="space-between">
-              <Text color="gray.400">Pool Address</Text>
-              <Code fontSize="xs">{poolAddress.slice(0, 10)}…{poolAddress.slice(-8)}</Code>
-            </HStack>
-          </SimpleGrid>
-        ) : !isFetchingPool ? (
-          <Text color="gray.500" fontSize="sm">Pool parameters unavailable — backend may be offline.</Text>
-        ) : null}
-      </Box>
+          <div className="mb-8">
+            <div className="flex justify-between mb-2">
+              <span className="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Utilization</span>
+              <span className="text-label-md font-label-md text-on-surface">62% Full</span>
+            </div>
+            <div className="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary to-tertiary shadow-[0_0_15px_rgba(173,198,255,0.4)]" style={{ width: '62%' }}></div>
+            </div>
+          </div>
 
-      {/* Loan Request Form */}
-      <Box
-        p={8}
-        borderRadius="xl"
-        bg="rgba(255, 255, 255, 0.05)"
-        backdropFilter="blur(10px)"
-        border="1px solid rgba(255, 255, 255, 0.1)"
-        boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
-      >
-        <VStack spacing={5} align="stretch">
-          <Heading size="md" color="white">Request a Loan</Heading>
+          {poolParams ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-unit-md">
+              <div className="bg-surface-container/50 border border-white/5 p-4 rounded-lg">
+                <p className="text-label-md font-label-md text-on-surface-variant mb-1">Total Value Locked (TVL)</p>
+                <p className="text-headline-md font-headline-md text-on-surface font-mono-data">{formatAmount(poolParams.tvl)} <span className="text-primary text-sm">ADA</span></p>
+              </div>
+              <div className="bg-surface-container/50 border border-white/5 p-4 rounded-lg">
+                <p className="text-label-md font-label-md text-on-surface-variant mb-1">Max Loan Amount</p>
+                <p className="text-headline-md font-headline-md text-on-surface font-mono-data">{formatAmount(poolParams.riskParams.maxLoanAmount)} <span className="text-tertiary text-sm">ADA</span></p>
+              </div>
+              <div className="bg-surface-container/50 border border-white/5 p-4 rounded-lg">
+                <p className="text-label-md font-label-md text-on-surface-variant mb-1">Min Credit Score</p>
+                <p className="text-headline-md font-headline-md text-on-surface font-mono-data">{poolParams.riskParams.minCreditScore}</p>
+              </div>
+              <div className="bg-surface-container/50 border border-white/5 p-4 rounded-lg">
+                <p className="text-label-md font-label-md text-on-surface-variant mb-1">Max LTV</p>
+                <p className="text-headline-md font-headline-md text-on-surface font-mono-data">{poolParams.riskParams.maxLTV}%</p>
+              </div>
+              <div className="bg-surface-container/50 border border-white/5 p-4 rounded-lg md:col-span-2 flex items-center justify-between">
+                <p className="text-label-md font-label-md text-on-surface-variant mb-0">Pool Contract Address</p>
+                <code className="text-xs font-mono-data text-primary bg-surface-container-lowest px-2 py-1 rounded border border-white/5">{poolAddress.slice(0, 12)}…{poolAddress.slice(-10)}</code>
+              </div>
+            </div>
+          ) : !isFetchingPool ? (
+            <p className="text-body-md text-on-surface-variant py-4">Pool parameters unavailable — backend may be offline.</p>
+          ) : null}
+        </div>
+      </section>
 
-          {/* Preset picker */}
-          <FormControl>
-            <FormLabel>Quick Presets</FormLabel>
-            <Select
-              value={preset}
-              onChange={handlePresetChange}
-              bg="rgba(255,255,255,0.05)"
-              border="1px solid rgba(255,255,255,0.15)"
-              _hover={{ borderColor: 'blue.400' }}
-              isDisabled={isProcessing}
-            >
-              {PRESETS.map((p, i) => (
-                <option key={i} value={i} style={{ background: '#1a1a2e' }}>
-                  {p.label}
-                </option>
-              ))}
-            </Select>
-            <FormHelperText color="gray.500" fontSize="xs">
-              Select a preset to auto-fill the form, or enter custom values below.
-            </FormHelperText>
-          </FormControl>
+      {/* Widget 2: Loan Request Engine */}
+      <section className="col-span-12 lg:col-span-5 glass-panel p-unit-lg rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-unit-lg">
+            <span className="material-symbols-outlined text-primary">speed</span>
+            <h3 className="text-headline-md font-headline-md text-on-surface">Loan Request Engine</h3>
+          </div>
 
-          <Divider borderColor="rgba(255,255,255,0.1)" />
+          <form className="space-y-5 flex-1" onSubmit={(e) => { e.preventDefault(); handleRequestLoan(); }}>
+            {/* Quick Presets */}
+            <div>
+              <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Quick Presets</label>
+              <select
+                className="w-full bg-surface-container-lowest border border-white/10 rounded-lg py-3 px-4 text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all"
+                value={preset}
+                onChange={handlePresetChange}
+                disabled={isProcessing}
+              >
+                {PRESETS.map((p, i) => (
+                  <option key={i} value={i} className="bg-surface-container">
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-on-surface-variant mt-1.5">Select a preset to auto-fill the form, or enter custom values below.</p>
+            </div>
 
-          {/* Amount */}
-          <FormControl isInvalid={!!amountError}>
-            <Flex justify="space-between" align="center">
-              <FormLabel mb={1}>Loan Amount (ADA)</FormLabel>
-              {poolParams && (
-                <Text fontSize="xs" color="gray.500">
-                  max {formatAmount(poolParams.riskParams.maxLoanAmount)} ADA
-                </Text>
+            <hr className="border-white/10" />
+
+            {/* Loan Amount */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-label-md font-label-md text-on-surface-variant">Loan Amount (ADA)</label>
+                {poolParams && (
+                  <span className="text-xs text-on-surface-variant font-mono-data">max {formatAmount(poolParams.riskParams.maxLoanAmount)} ADA</span>
+                )}
+              </div>
+              <input
+                type="number"
+                className={`w-full bg-surface-container-lowest border ${amountError ? 'border-error focus:ring-error' : 'border-white/10 focus:ring-primary'} rounded-lg py-3 px-4 text-on-surface focus:ring-2 outline-none transition-all`}
+                value={loanAmount}
+                onChange={(e) => { setLoanAmount(Number(e.target.value)); setPreset(0); }}
+                min={100}
+                max={poolParams ? Number(poolParams.riskParams.maxLoanAmount) : 1000000}
+                disabled={isProcessing}
+              />
+              {amountError ? (
+                <p className="text-xs text-error mt-1.5">{amountError}</p>
+              ) : (
+                <p className="text-xs text-on-surface-variant mt-1.5 font-mono-data">Minimum 100 ADA</p>
               )}
-            </Flex>
-            <NumberInput
-              value={loanAmount}
-              onChange={(_, val) => { setLoanAmount(val || 0); setPreset(0); }}
-              min={100}
-              max={poolParams?.riskParams.maxLoanAmount ? Number(poolParams.riskParams.maxLoanAmount) : 1_000_000}
-              isDisabled={isProcessing}
-              focusBorderColor="blue.400"
-            >
-              <NumberInputField
-                bg="rgba(255,255,255,0.05)"
-                border="1px solid rgba(255,255,255,0.15)"
-                _hover={{ borderColor: 'blue.400' }}
-              />
-              <NumberInputStepper>
-                <NumberIncrementStepper borderColor="rgba(255,255,255,0.1)" />
-                <NumberDecrementStepper borderColor="rgba(255,255,255,0.1)" />
-              </NumberInputStepper>
-            </NumberInput>
-            {amountError
-              ? <FormErrorMessage>{amountError}</FormErrorMessage>
-              : <FormHelperText color="gray.500" fontSize="xs">Minimum 100 ADA</FormHelperText>
-            }
-          </FormControl>
+            </div>
 
-          {/* Term */}
-          <FormControl isInvalid={!!termError}>
-            <FormLabel mb={1}>Loan Term (Days)</FormLabel>
-            <NumberInput
-              value={termDays}
-              onChange={(_, val) => { setTermDays(val || 0); setPreset(0); }}
-              min={7}
-              max={1825}
-              isDisabled={isProcessing}
-              focusBorderColor="blue.400"
-            >
-              <NumberInputField
-                bg="rgba(255,255,255,0.05)"
-                border="1px solid rgba(255,255,255,0.15)"
-                _hover={{ borderColor: 'blue.400' }}
-              />
-              <NumberInputStepper>
-                <NumberIncrementStepper borderColor="rgba(255,255,255,0.1)" />
-                <NumberDecrementStepper borderColor="rgba(255,255,255,0.1)" />
-              </NumberInputStepper>
-            </NumberInput>
-            {termError
-              ? <FormErrorMessage>{termError}</FormErrorMessage>
-              : <FormHelperText color="gray.500" fontSize="xs">7 – 1,825 days</FormHelperText>
-            }
-          </FormControl>
-
-          {/* Progress steps when processing */}
-          {isProcessing && (
-            <Box
-              p={4}
-              borderRadius="lg"
-              bg="rgba(66, 153, 225, 0.08)"
-              border="1px solid rgba(66, 153, 225, 0.2)"
-            >
-              <VStack spacing={3} align="stretch">
-                {/* Overall bar */}
-                <Progress
-                  value={progressPct}
-                  size="sm"
-                  colorScheme="blue"
-                  borderRadius="full"
-                  hasStripe
-                  isAnimated
-                  bg="rgba(255,255,255,0.08)"
+            {/* Loan Term & Proof Method */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Term (Days)</label>
+                <input
+                  type="number"
+                  className={`w-full bg-surface-container-lowest border ${termError ? 'border-error focus:ring-error' : 'border-white/10 focus:ring-primary'} rounded-lg py-3 px-4 text-on-surface focus:ring-2 outline-none transition-all`}
+                  value={termDays}
+                  onChange={(e) => { setTermDays(Number(e.target.value)); setPreset(0); }}
+                  min={7}
+                  max={1825}
+                  disabled={isProcessing}
                 />
+                {termError ? (
+                  <p className="text-xs text-error mt-1.5">{termError}</p>
+                ) : (
+                  <p className="text-xs text-on-surface-variant mt-1.5 font-mono-data">7 – 1,825 days</p>
+                )}
+              </div>
 
-                {/* Per-step list */}
-                {LOAN_STEPS.map((step, idx) => {
-                  const done    = idx < currentStep;
-                  const active  = idx === currentStep;
-                  const pending = idx > currentStep;
-                  return (
-                    <HStack key={step.id} spacing={3} opacity={pending ? 0.35 : 1} transition="opacity 0.3s">
-                      {done ? (
-                        <CheckCircleIcon boxSize={4} color="green.400" />
-                      ) : active ? (
-                        <Spinner size="xs" color="blue.400" />
-                      ) : (
-                        <TimeIcon boxSize={4} color="gray.500" />
-                      )}
-                      <Text
-                        fontSize="sm"
-                        color={done ? 'green.300' : active ? 'blue.200' : 'gray.500'}
-                        fontWeight={active ? 'semibold' : 'normal'}
-                      >
-                        {step.label}
-                      </Text>
-                      {done && (
-                        <Badge colorScheme="green" variant="subtle" fontSize="2xs" ml="auto">
-                          done
-                        </Badge>
-                      )}
-                    </HStack>
-                  );
-                })}
-              </VStack>
-            </Box>
-          )}
+              <div>
+                <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Proof Method</label>
+                <div className="w-full bg-surface-container-lowest border border-white/10 rounded-lg py-3 px-4 text-on-surface-variant flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-primary">lock</span>
+                  <span className="text-xs font-mono-data">ZK-Proof ID</span>
+                </div>
+              </div>
+            </div>
 
-          {/* Submit */}
-          <Tooltip
-            label="Press Enter or click to submit"
-            placement="top"
-            hasArrow
-            isDisabled={isProcessing}
-          >
-            <Button
-              id="loan-request-submit"
-              colorScheme="blue"
-              size="lg"
-              onClick={handleRequestLoan}
-              isDisabled={isProcessing}
-              isLoading={isProcessing}
-              loadingText={currentStep >= 0 ? LOAN_STEPS[currentStep]?.label.replace('…', '') : 'Processing…'}
-              w="full"
-              _hover={{ transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(66, 153, 225, 0.4)' }}
-              transition="all 0.2s"
-              fontWeight="semibold"
-              letterSpacing="wide"
-            >
-              Request Loan
-            </Button>
-          </Tooltip>
-        </VStack>
-      </Box>
-    </VStack>
+            {/* Submit Button */}
+            <div className="mt-6">
+              <button
+                id="loan-request-submit"
+                type="button"
+                onClick={handleRequestLoan}
+                disabled={isProcessing}
+                className="w-full py-4 bg-primary text-on-primary font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+              >
+                {isProcessing ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span>{currentStep >= 0 ? LOAN_STEPS[currentStep]?.label.replace('…', '') : 'Processing…'}</span>
+                  </>
+                ) : (
+                  <span>Initialize Credit Request</span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* ZK Pipeline (Step-based Flow) */}
+      <section className="col-span-12 glass-panel p-unit-lg rounded-xl overflow-hidden relative mt-2">
+        <div className="flex items-center gap-2 mb-unit-lg">
+          <span className="material-symbols-outlined text-secondary">auto_awesome</span>
+          <h3 className="text-headline-md font-headline-md text-on-surface">ZK Pipeline Generation</h3>
+        </div>
+
+        {/* Progress bar when processing */}
+        {isProcessing && (
+          <div className="mb-8 w-full bg-surface-container-highest rounded-full h-2 overflow-hidden border border-white/5">
+            <div className="bg-gradient-to-r from-primary to-secondary h-full transition-all duration-300" style={{ width: `${progressPct}%` }}></div>
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row justify-between items-center gap-gutter relative py-4">
+          {/* Background Connectors */}
+          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -z-10 hidden md:block"></div>
+
+          {LOAN_STEPS.map((step, idx) => {
+            const done    = idx < currentStep;
+            const active  = idx === currentStep;
+            const pending = idx > currentStep;
+
+            return (
+              <React.Fragment key={step.id}>
+                <div className={`flex flex-col items-center gap-3 group relative flex-1 ${pending ? 'opacity-40' : ''} transition-all duration-300`}>
+                  <div className={`w-12 h-12 rounded-full bg-surface-container-highest border-2 ${done ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : active ? 'border-secondary text-secondary bg-secondary/10 shadow-[0_0_15px_rgba(196,171,255,0.4)]' : 'border-white/20 text-white/40'} flex items-center justify-center relative transition-all`}>
+                    {active && <div className="absolute inset-0 rounded-full zk-shimmer opacity-30 animate-pulse"></div>}
+                    <span className={`material-symbols-outlined ${active ? 'animate-spin' : ''}`}>{done ? 'done' : active ? 'cyclone' : step.icon}</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-label-md font-label-md text-on-surface mb-1">{idx + 1}. {step.label.replace('…', '')}</p>
+                    <p className={`text-xs font-mono-data ${done ? 'text-emerald-400' : active ? 'text-secondary animate-pulse' : 'text-on-surface-variant'}`}>
+                      {done ? 'COMPLETED' : active ? 'PROCESSING...' : 'PENDING'}
+                    </p>
+                  </div>
+                </div>
+                {idx < LOAN_STEPS.length - 1 && (
+                  <span className="material-symbols-outlined text-white/20 hidden md:block">arrow_forward</span>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </section>
+    </>
   );
 };

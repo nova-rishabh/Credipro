@@ -1,53 +1,27 @@
-import React, { useState } from 'react';
-import { Box, Flex, Heading, Spacer, Image, HStack } from '@chakra-ui/react';
+import React from 'react';
 import { WalletConnectButton } from './WalletConnectButton';
 import HealthBanner from './HealthBanner';
 
 const Header: React.FC = () => {
   return (
-    <Box
-      bg="rgba(15, 12, 41, 0.85)"
-      backdropFilter="blur(12px)"
-      borderBottom="1px solid rgba(255, 255, 255, 0.1)"
-      p={4}
-      position="sticky"
-      top={0}
-      zIndex={10}
-    >
-      <Flex maxW="container.xl" mx="auto" align="center">
-        <LogoOrTitle />
-        <Spacer />
-        <HealthBanner />
-        <WalletConnectButton />
-      </Flex>
-    </Box>
-  );
-};
-
-const LogoOrTitle: React.FC = () => {
-  const [failed, setFailed] = useState(false);
-  const candidates = [
-    '/logo/logo.svg',
-    '/logo/credipro.svg',
-    '/logo/logo.png',
-    '/logo/credipro.png',
-  ];
-
-  if (failed) return <Heading size="md" color="white" fontWeight="bold" letterSpacing="tight">Credipro</Heading>;
-
-  return (
-    <HStack spacing={3} align="center">
-      <Image
-        src={candidates[0]}
-        alt="Credipro logo"
-        boxSize="40px"
-        objectFit="contain"
-        onError={() => setFailed(true)}
-      />
-      <Heading size="md" color="white" fontWeight="bold" letterSpacing="tight" display={{ base: 'none', sm: 'block' }}>
-        Credipro
-      </Heading>
-    </HStack>
+    <header className="sticky top-0 w-full z-40 bg-surface/60 backdrop-blur-md border-b border-white/10 h-[72px]">
+      <div className="max-w-container-max mx-auto h-full px-margin-desktop flex justify-between items-center">
+        <div className="flex items-center gap-8">
+          <HealthBanner />
+        </div>
+        <div className="flex items-center gap-unit-md">
+          <WalletConnectButton />
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-white/5 bg-transparent border-0 rounded-full transition-colors flex items-center justify-center cursor-pointer">
+              <span className="material-symbols-outlined text-on-surface-variant" data-icon="security">security</span>
+            </button>
+            <button className="p-2 hover:bg-white/5 bg-transparent border-0 rounded-full transition-colors text-primary flex items-center justify-center cursor-pointer">
+              <span className="material-symbols-outlined" data-icon="shutter_speed">shutter_speed</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 };
 

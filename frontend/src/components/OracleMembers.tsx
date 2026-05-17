@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Box, VStack, Heading, Text, HStack, Code, Spinner } from '@chakra-ui/react';
 import { getOracleMembers } from '../api/crediproApi';
 
 interface OracleMember {
@@ -32,26 +31,37 @@ export const OracleMembers: React.FC = () => {
   }, []);
 
   return (
-    <Box>
-      <Heading size="sm" color="white" mb={3}>Oracle Committee</Heading>
+    <div className="glass-panel p-unit-lg rounded-xl mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-primary">group</span>
+        <h3 className="text-headline-md font-headline-md text-on-surface">Oracle Committee Overview</h3>
+      </div>
       {loading ? (
-        <HStack>
-          <Spinner size="sm" />
-          <Text color="gray.300">Loading oracle members...</Text>
-        </HStack>
+        <div className="flex items-center gap-3 py-4">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-body-md text-on-surface-variant">Loading oracle committee members...</p>
+        </div>
       ) : members && members.length > 0 ? (
-        <VStack align="stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-unit-md">
           {members.map(m => (
-            <HStack key={m.id} justify="space-between" p={2} bg="rgba(255,255,255,0.02)" borderRadius="md">
-              <Text color="gray.200">{m.name}</Text>
-              <Code fontSize="xs">{m.publicKey.slice(0,8)}...{m.publicKey.slice(-6)}</Code>
-            </HStack>
+            <div key={m.id} className="bg-surface-container-low border border-white/5 p-4 rounded-lg flex items-center justify-between gap-3 hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                  {m.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-label-md font-label-md text-on-surface">{m.name}</p>
+                  <p className="text-xs text-on-surface-variant font-mono-data">{m.publicKey.slice(0, 8)}...{m.publicKey.slice(-6)}</p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-emerald-400 text-sm">verified</span>
+            </div>
           ))}
-        </VStack>
+        </div>
       ) : (
-        <Text color="gray.400">No oracle members available.</Text>
+        <p className="text-body-md text-on-surface-variant py-2">No oracle committee members available.</p>
       )}
-    </Box>
+    </div>
   );
 };
 

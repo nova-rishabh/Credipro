@@ -1,98 +1,27 @@
 import React, { useState } from 'react';
-import { Box, Flex, Text, Badge, HStack, IconButton, Collapse } from '@chakra-ui/react';
-import { CloseIcon, InfoIcon } from '@chakra-ui/icons';
 
-/**
- * Full-width top banner shown in demo mode.
- * Rendered above the Header so it stays at the very top of the viewport.
- */
 const DemoBanner: React.FC = () => {
   const [visible, setVisible] = useState(true);
 
+  if (!visible) return null;
+
   return (
-    <Collapse in={visible} animateOpacity unmountOnExit>
-      <Box
-        w="full"
-        bg="linear-gradient(90deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)"
-        borderBottom="1px solid rgba(255, 193, 7, 0.35)"
-        px={4}
-        py={2}
-        position="sticky"
-        top={0}
-        zIndex={20}
+    <div className="w-full bg-surface-container-highest/50 border-b border-white/5 py-2 px-margin-desktop flex justify-between items-center gap-3 z-[60] relative backdrop-blur-sm">
+      <div className="flex items-center gap-2 mx-auto">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+        </span>
+        <p className="text-label-md font-label-md text-on-surface m-0">Demo Mode — Not Live. Connected to Midnight Testnet Simulation</p>
+      </div>
+      <button
+        onClick={() => setVisible(false)}
+        className="text-white/40 hover:text-white hover:bg-white/10 p-1 rounded-full transition-colors flex items-center justify-center"
+        title="Dismiss banner"
       >
-        <Flex maxW="container.xl" mx="auto" align="center" justify="space-between">
-          <HStack spacing={3}>
-            {/* Pulsing indicator dot */}
-            <Box position="relative" display="inline-flex">
-              <Box
-                as="span"
-                position="absolute"
-                display="inline-flex"
-                w="10px"
-                h="10px"
-                borderRadius="full"
-                bg="yellow.400"
-                opacity={0.75}
-                sx={{
-                  '@keyframes ping': {
-                    '0%': { transform: 'scale(1)', opacity: 0.75 },
-                    '75%, 100%': { transform: 'scale(2)', opacity: 0 },
-                  },
-                  animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                }}
-              />
-              <Box
-                as="span"
-                position="relative"
-                display="inline-flex"
-                w="10px"
-                h="10px"
-                borderRadius="full"
-                bg="yellow.400"
-              />
-            </Box>
-
-            <Badge
-              colorScheme="yellow"
-              variant="solid"
-              px={2}
-              py={0.5}
-              borderRadius="md"
-              fontSize="xs"
-              letterSpacing="wider"
-              textTransform="uppercase"
-            >
-              Demo Mode
-            </Badge>
-
-            <Text fontSize="sm" color="yellow.200" fontWeight="medium" display={{ base: 'none', sm: 'block' }}>
-              Not live — using mocked Midnight ledger &amp; compiled runtime
-            </Text>
-
-            <HStack
-              spacing={1}
-              fontSize="xs"
-              color="gray.400"
-              display={{ base: 'none', md: 'flex' }}
-            >
-              <InfoIcon boxSize={3} />
-              <Text>Append <Badge variant="outline" colorScheme="gray" fontSize="2xs">?live</Badge> to the URL to connect a real Lace wallet</Text>
-            </HStack>
-          </HStack>
-
-          <IconButton
-            aria-label="Dismiss demo banner"
-            icon={<CloseIcon boxSize={2.5} />}
-            size="xs"
-            variant="ghost"
-            color="gray.400"
-            _hover={{ color: 'white', bg: 'rgba(255,255,255,0.1)' }}
-            onClick={() => setVisible(false)}
-          />
-        </Flex>
-      </Box>
-    </Collapse>
+        <span className="material-symbols-outlined text-sm" data-icon="close">close</span>
+      </button>
+    </div>
   );
 };
 

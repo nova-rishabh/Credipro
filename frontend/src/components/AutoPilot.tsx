@@ -1,25 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Badge,
-  Progress,
-  Kbd,
-  Collapse,
-  IconButton,
-  Divider,
-  Tooltip,
-} from '@chakra-ui/react';
-import {
-  ChevronRightIcon,
-  ChevronLeftIcon,
-  CloseIcon,
-  RepeatIcon,
-  InfoIcon,
-} from '@chakra-ui/icons';
 import { useCredipro } from '../context/CrediproContext';
 
 // ---------------------------------------------------------------------------
@@ -90,16 +69,16 @@ const STEPS = [
 
 const AutoPilot: React.FC = () => {
   const { isDemoMode } = useCredipro();
-  const [open,    setOpen]    = useState(false);
-  const [step,    setStep]    = useState(0);
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(true);
 
   const totalSteps = STEPS.length;
-  const current    = STEPS[step];
+  const current = STEPS[step];
 
   // ---- Open/close ----
-  const close  = useCallback(() => { setOpen(false); setStep(0); }, []);
-  const launch = useCallback(() => { setOpen(true);  setStep(0); }, []);
+  const close = useCallback(() => { setOpen(false); setStep(0); }, []);
+  const launch = useCallback(() => { setOpen(true); setStep(0); }, []);
 
   // ---- Navigation ----
   const next = useCallback(() => setStep((s) => Math.min(s + 1, totalSteps - 1)), [totalSteps]);
@@ -116,9 +95,9 @@ const AutoPilot: React.FC = () => {
       }
       if (!open) return;
 
-      if (e.key === 'Escape')      close();
+      if (e.key === 'Escape') close();
       if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') next();
-      if (e.key === 'ArrowLeft'  || e.key.toLowerCase() === 'p') prev();
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') prev();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -138,172 +117,118 @@ const AutoPilot: React.FC = () => {
 
   return (
     <>
-      {/* ---- Floating launcher pill ---- */}
+      {/* ---- Floating launcher pill (Widget 4 match) ---- */}
       {!open && (
-        <Box
-          position="fixed"
-          bottom={6}
-          right={6}
-          zIndex={50}
-        >
-          <HStack spacing={2}>
-            <Tooltip label="Close launcher" hasArrow placement="top">
-              <IconButton
-                aria-label="Close guided tour launcher"
-                icon={<CloseIcon boxSize={2} />}
-                size="xs"
-                variant="ghost"
-                color="gray.500"
-                onClick={() => setVisible(false)}
-              />
-            </Tooltip>
-            <Button
-              id="autopilot-launch"
-              onClick={launch}
-              size="sm"
-              colorScheme="purple"
-              variant="solid"
-              leftIcon={<InfoIcon />}
-              boxShadow="0 4px 20px rgba(159, 122, 234, 0.5)"
-              _hover={{ transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(159, 122, 234, 0.6)' }}
-              transition="all 0.2s"
-              borderRadius="full"
+        <div className="fixed bottom-8 right-8 z-[70] animate-fade-in">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 shadow-2xl border-primary/30 max-w-[280px]">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-secondary to-tertiary flex items-center justify-center text-on-secondary pulse-dot relative flex-shrink-0 shadow-lg shadow-secondary/20">
+              <span className="material-symbols-outlined text-lg">neurology</span>
+            </div>
+            <div className="flex-1 cursor-pointer" onClick={launch}>
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-label-md font-label-md text-on-surface m-0 font-bold">AutoPilot AI</p>
+                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded border border-primary/30 font-mono-data">Ctrl+T</span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant leading-tight m-0">Click to launch interactive guided tour of ZK lending & oracle consensus.</p>
+            </div>
+            <button
+              onClick={() => setVisible(false)}
+              className="p-1 hover:bg-white/10 rounded-full self-start transition-colors text-on-surface-variant hover:text-white"
+              title="Close AutoPilot"
             >
-              Guided Tour
-              <Kbd
-                ml={2}
-                fontSize="2xs"
-                bg="rgba(255,255,255,0.15)"
-                color="white"
-                border="none"
-              >
-                Ctrl+T
-              </Kbd>
-            </Button>
-          </HStack>
-        </Box>
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ---- Tour panel ---- */}
-      <Collapse in={open} animateOpacity unmountOnExit>
-        <Box
-          position="fixed"
-          bottom={6}
-          right={6}
-          zIndex={50}
-          w={{ base: 'calc(100vw - 3rem)', sm: '380px' }}
-          borderRadius="2xl"
-          bg="rgba(15, 12, 41, 0.95)"
-          backdropFilter="blur(20px)"
-          border="1px solid rgba(159, 122, 234, 0.4)"
-          boxShadow="0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(159,122,234,0.15)"
-          overflow="hidden"
-        >
-          {/* Header */}
-          <HStack
-            px={5}
-            py={3}
-            bg="rgba(159, 122, 234, 0.12)"
-            borderBottom="1px solid rgba(159,122,234,0.2)"
-            justify="space-between"
-          >
-            <HStack spacing={2}>
-              <Badge colorScheme="purple" variant="solid" borderRadius="full" fontSize="2xs">
-                TOUR
-              </Badge>
-              <Text fontSize="xs" color="gray.400">
-                Step {step + 1} of {totalSteps}
-              </Text>
-            </HStack>
-            <HStack spacing={1}>
-              <Tooltip label="Restart tour" hasArrow>
-                <IconButton
-                  aria-label="Restart tour"
-                  icon={<RepeatIcon boxSize={3} />}
-                  size="xs"
-                  variant="ghost"
-                  color="gray.400"
-                  _hover={{ color: 'white' }}
+      {open && (
+        <div className="fixed bottom-8 right-8 z-[70] w-[calc(100vw-3rem)] sm:w-[380px] animate-fade-in">
+          <div className="glass-panel rounded-2xl border border-primary/40 shadow-[0_16px_48px_rgba(0,0,0,0.6),_0_0_0_1px_rgba(159,122,234,0.15)] overflow-hidden bg-[#0f131d]/95 backdrop-blur-2xl">
+            {/* Header */}
+            <div className="px-5 py-3 bg-primary/10 border-b border-primary/20 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-primary text-on-primary font-bold rounded-full text-[10px] tracking-wider">TOUR</span>
+                <span className="text-xs text-gray-400 font-mono-data">Step {step + 1} of {totalSteps}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
                   onClick={() => setStep(0)}
-                />
-              </Tooltip>
-              <IconButton
-                aria-label="Close tour"
-                icon={<CloseIcon boxSize={2} />}
-                size="xs"
-                variant="ghost"
-                color="gray.400"
-                _hover={{ color: 'white' }}
-                onClick={close}
-              />
-            </HStack>
-          </HStack>
-
-          {/* Progress bar */}
-          <Progress
-            value={((step + 1) / totalSteps) * 100}
-            size="xs"
-            colorScheme="purple"
-            bg="rgba(255,255,255,0.06)"
-          />
-
-          {/* Body */}
-          <VStack spacing={4} p={5} align="stretch">
-            <Text fontWeight="bold" fontSize="md" color="white" lineHeight="tight">
-              {current.title}
-            </Text>
-            <Text fontSize="sm" color="gray.300" lineHeight="relaxed">
-              {current.body}
-            </Text>
-
-            {current.hint && (
-              <>
-                <Divider borderColor="rgba(255,255,255,0.1)" />
-                <HStack spacing={2} align="start">
-                  <InfoIcon boxSize={3} color="purple.400" mt={0.5} flexShrink={0} />
-                  <Text fontSize="xs" color="purple.300" fontStyle="italic">
-                    {current.hint}
-                  </Text>
-                </HStack>
-              </>
-            )}
-
-            {/* Navigation */}
-            <HStack justify="space-between" pt={1}>
-              <Button
-                size="sm"
-                variant="ghost"
-                leftIcon={<ChevronLeftIcon />}
-                onClick={prev}
-                isDisabled={step === 0}
-                color="gray.400"
-                _hover={{ color: 'white' }}
-              >
-                Back
-                <Kbd ml={1} fontSize="2xs" bg="rgba(255,255,255,0.1)" border="none" color="gray.400">←</Kbd>
-              </Button>
-
-              {step < totalSteps - 1 ? (
-                <Button
-                  size="sm"
-                  colorScheme="purple"
-                  rightIcon={<ChevronRightIcon />}
-                  onClick={next}
+                  className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                  title="Restart tour"
                 >
-                  Next
-                  <Kbd ml={1} fontSize="2xs" bg="rgba(255,255,255,0.15)" border="none" color="white">→</Kbd>
-                </Button>
-              ) : (
-                <Button size="sm" colorScheme="green" onClick={close}>
-                  Finish ✓
-                </Button>
+                  <span className="material-symbols-outlined text-sm">replay</span>
+                </button>
+                <button
+                  onClick={close}
+                  className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                  title="Close tour"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-1 bg-white/5 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-tertiary transition-all duration-300 shadow-[0_0_8px_rgba(173,198,255,0.4)]"
+                style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+              ></div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col gap-4">
+              <h4 className="text-headline-sm font-headline-sm text-white m-0 font-bold">{current.title}</h4>
+              <p className="text-body-sm text-gray-300 leading-relaxed m-0">{current.body}</p>
+
+              {current.hint && (
+                <>
+                  <div className="h-[1px] bg-white/10 w-full my-1"></div>
+                  <div className="flex items-start gap-2 bg-primary/5 border border-primary/10 p-2.5 rounded-lg">
+                    <span className="material-symbols-outlined text-primary text-sm mt-0.5 flex-shrink-0">lightbulb</span>
+                    <p className="text-xs text-primary/90 italic m-0 leading-normal">{current.hint}</p>
+                  </div>
+                </>
               )}
-            </HStack>
-          </VStack>
-        </Box>
-      </Collapse>
+
+              {/* Navigation */}
+              <div className="flex justify-between items-center pt-2 mt-1 border-t border-white/5">
+                <button
+                  onClick={prev}
+                  disabled={step === 0}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-all flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  Back
+                  <span className="px-1 py-0.5 bg-white/10 rounded text-[10px] ml-1 font-mono-data">←</span>
+                </button>
+
+                {step < totalSteps - 1 ? (
+                  <button
+                    onClick={next}
+                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary font-bold rounded-lg text-xs transition-all flex items-center gap-1 shadow-lg shadow-primary/20 active:scale-95"
+                  >
+                    Next
+                    <span className="px-1 py-0.5 bg-white/20 rounded text-[10px] ml-1 font-mono-data">→</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={close}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1 shadow-lg shadow-emerald-500/20 active:scale-95"
+                  >
+                    Finish ✓
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
 export default AutoPilot;
+

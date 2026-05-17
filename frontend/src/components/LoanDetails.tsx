@@ -1,19 +1,4 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  VStack,
-  HStack,
-  Heading,
-  FormControl,
-  FormLabel,
-  Input,
-  Button,
-  Text,
-  Badge,
-  Spinner,
-  Code,
-  Divider,
-} from '@chakra-ui/react';
 import { getLoanDetails, LoanDetails as LoanDetailsType } from '../api/crediproApi';
 
 const LoanDetails: React.FC = () => {
@@ -65,156 +50,119 @@ const LoanDetails: React.FC = () => {
   };
 
   return (
-    <Box
-      p={8}
-      borderRadius="xl"
-      bg="rgba(255, 255, 255, 0.05)"
-      backdropFilter="blur(10px)"
-      border="1px solid rgba(255, 255, 255, 0.1)"
-      boxShadow="0 8px 32px 0 rgba(31, 38, 135, 0.37)"
-    >
-      <VStack spacing={6} align="stretch">
-        <Heading size="md">Loan Details</Heading>
+    <section className="glass-panel p-unit-lg rounded-xl">
+      <div className="flex items-center gap-2 mb-unit-lg">
+        <span className="material-symbols-outlined text-primary">search</span>
+        <h3 className="text-headline-md font-headline-md text-on-surface">Loan Details Lookup</h3>
+      </div>
 
-        {/* Input Section */}
-        <HStack spacing={4} align="flex-end">
-          <FormControl>
-            <FormLabel>Loan ID</FormLabel>
-            <Input
-              value={loanId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setLoanId(e.target.value)
-              }
-              placeholder="Enter loan ID"
-              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                if (e.key === 'Enter') handleLookup();
-              }}
-            />
-          </FormControl>
-          <Button
-            onClick={handleLookup}
-            isLoading={isLoading}
-            loadingText="Searching"
-            colorScheme="purple"
-            minW="120px"
-          >
-            Look Up
-          </Button>
-        </HStack>
+      {/* Input Section */}
+      <div className="flex flex-col sm:flex-row gap-4 items-end mb-6">
+        <div className="flex-1 w-full">
+          <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Loan ID</label>
+          <input
+            type="text"
+            className="w-full bg-surface-container-lowest border border-white/10 rounded-lg py-3 px-4 text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all"
+            value={loanId}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoanId(e.target.value)}
+            placeholder="Enter loan ID"
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') handleLookup();
+            }}
+          />
+        </div>
+        <button
+          onClick={handleLookup}
+          disabled={isLoading}
+          className="w-full sm:w-auto px-6 py-3 bg-tertiary text-on-primary font-bold rounded-lg hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-tertiary/20 h-[50px]"
+        >
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>
+              <span>Searching…</span>
+            </>
+          ) : (
+            <span>Look Up</span>
+          )}
+        </button>
+      </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <HStack justify="center" py={8}>
-            <Spinner size="lg" color="purple.500" />
-            <Text ml={3}>Fetching loan details...</Text>
-          </HStack>
-        )}
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center gap-3 py-8">
+          <div className="w-8 h-8 border-4 border-tertiary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-body-md text-on-surface-variant">Fetching loan details…</p>
+        </div>
+      )}
 
-        {/* Error State */}
-        {error && !isLoading && (
-          <Box
-            p={4}
-            borderRadius="lg"
-            bg="rgba(255, 0, 0, 0.1)"
-            border="1px solid rgba(255, 0, 0, 0.2)"
-          >
-            <Text color="red.300">{error}</Text>
-          </Box>
-        )}
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="p-4 rounded-lg bg-error/10 border border-error/20 mb-6">
+          <p className="text-sm text-error font-medium">{error}</p>
+        </div>
+      )}
 
-        {/* Loan Details Display */}
-        {loanDetails && !isLoading && (
-          <>
-            <Divider />
-            <VStack spacing={3} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Loan ID
-                </Text>
-                <Code>{truncate(loanDetails.loanId)}</Code>
-              </HStack>
+      {/* Loan Details Display */}
+      {loanDetails && !isLoading && (
+        <>
+          <hr className="border-white/10 my-6" />
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Loan ID</span>
+              <code className="text-xs font-mono-data text-primary bg-surface-container-lowest px-2 py-1 rounded border border-white/5">{truncate(loanDetails.loanId)}</code>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Amount
-                </Text>
-                <Text fontWeight="semibold">
-                  {formatAmount(loanDetails.disbursedAmount)} ADA
-                </Text>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Amount</span>
+              <span className="text-body-lg font-bold text-on-surface font-mono-data">{formatAmount(loanDetails.disbursedAmount)} <span className="text-primary text-sm">ADA</span></span>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Status
-                </Text>
-                <Badge
-                  colorScheme={loanDetails.isDefaulted ? 'red' : 'green'}
-                  variant="solid"
-                  px={3}
-                  py={1}
-                  borderRadius="full"
-                  fontSize="sm"
-                >
-                  {loanDetails.isDefaulted ? 'Defaulted' : 'Active'}
-                </Badge>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Status</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${loanDetails.isDefaulted ? 'bg-error/20 text-error border border-error/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
+                {loanDetails.isDefaulted ? 'Defaulted' : 'Active'}
+              </span>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Interest Rate
-                </Text>
-                <Text>{loanDetails.interestRate}%</Text>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Interest Rate</span>
+              <span className="text-body-md text-on-surface font-mono-data">{loanDetails.interestRate}%</span>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Lender Address
-                </Text>
-                <Code fontSize="sm">{truncate(loanDetails.lenderAddress)}</Code>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Lender Address</span>
+              <code className="text-xs font-mono-data text-tertiary bg-surface-container-lowest px-2 py-1 rounded border border-white/5">{truncate(loanDetails.lenderAddress)}</code>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Identity Hash
-                </Text>
-                <Code fontSize="sm">{truncate(loanDetails.identityHash)}</Code>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Identity Hash</span>
+              <code className="text-xs font-mono-data text-secondary bg-surface-container-lowest px-2 py-1 rounded border border-white/5">{truncate(loanDetails.identityHash)}</code>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Borrower Key
-                </Text>
-                <Code fontSize="sm">
-                  {truncate(loanDetails.borrowerPublicKey)}
-                </Code>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Borrower Key</span>
+              <code className="text-xs font-mono-data text-primary bg-surface-container-lowest px-2 py-1 rounded border border-white/5">{truncate(loanDetails.borrowerPublicKey)}</code>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Default Threshold
-                </Text>
-                <Text>{loanDetails.defaultThreshold}</Text>
-              </HStack>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Default Threshold</span>
+              <span className="text-body-md text-on-surface font-mono-data">{loanDetails.defaultThreshold}</span>
+            </div>
 
-              <HStack justify="space-between">
-                <Text fontWeight="bold" color="gray.400">
-                  Disbursed
-                </Text>
-                <Text>
-                  {new Date(
-                    loanDetails.disbursalTimestamp * 1000,
-                  ).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </Text>
-              </HStack>
-            </VStack>
-          </>
-        )}
-      </VStack>
-    </Box>
+            <div className="flex justify-between items-center bg-surface-container/30 p-3 rounded-lg border border-white/5">
+              <span className="text-label-md font-label-md text-on-surface-variant">Disbursed</span>
+              <span className="text-body-md text-on-surface font-mono-data">
+                {new Date(loanDetails.disbursalTimestamp * 1000).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
   );
 };
 

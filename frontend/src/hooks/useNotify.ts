@@ -1,16 +1,6 @@
-import { useToast, UseToastOptions } from '@chakra-ui/react';
+import { useToastContext } from '../context/ToastContext';
 
 export function useNotify() {
-  const toast = useToast();
-
-  function notify(options: UseToastOptions) {
-    toast({
-      duration: options.duration ?? 6000,
-      isClosable: options.isClosable ?? true,
-      position: options.position ?? 'top-right',
-      ...options,
-    });
-  }
-
+  const { notify } = useToastContext();
   return notify;
 }

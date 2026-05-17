@@ -32,3 +32,4 @@ Thumbs.db
 # Database
 *.sqlite
 *.sqlite3
+stitch_credipro_zk_lending_protocol*

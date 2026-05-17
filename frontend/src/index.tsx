@@ -1,9 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import theme from './theme';
+import { ToastProvider } from './context/ToastContext';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -13,11 +12,10 @@ if (!rootEl) {
 const root = ReactDOM.createRoot(rootEl);
 root.render(
   <React.StrictMode>
-    <ChakraProvider theme={theme}>
-      <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <ToastProvider>
         <App />
-      </ErrorBoundary>
-    </ChakraProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
